@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useSettings } from "../../lib/SettingsContext";
-import { Save, UploadCloud, Trash2, Image as ImageIcon, Film, Palette, Maximize, Check } from "lucide-react";
+import { Save, UploadCloud, Trash2, Image as ImageIcon, Film, Palette, Maximize, Check, Plus, Link2 } from "lucide-react";
 
 export default function AdminMedia() {
   const { settings, updateSettings } = useSettings();
@@ -12,6 +12,8 @@ export default function AdminMedia() {
   const [mediaFullScreen, setMediaFullScreen] = useState(false);
   const [bgColor, setBgColor] = useState("#f3f4f6");
   const [boxColor, setBoxColor] = useState("#ffffff");
+  const [manualSlideUrl, setManualSlideUrl] = useState("");
+  const [manualVideoUrl, setManualVideoUrl] = useState("");
 
   useEffect(() => {
     if (settings) {
@@ -46,43 +48,80 @@ export default function AdminMedia() {
     alert("Semua Pengaturan Media & Tampilan Berhasil Disimpan!");
   };
 
+  const compressImage = (file: File, maxWidth = 1080, quality = 0.7): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(event.target?.result as string);
+            return;
+          }
+
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'slide' | 'video' | 'leftBg') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
+    // Check file size limit for absolute safety
+    if (type === 'video' && file.size > 1.2 * 1024 * 1024) {
+      alert("⚠️ Video terlalu besar untuk disimpan langsung di serverless/static Vercel (Max 1.2MB).\n\nSilakan gunakan opsi 'Tambah via Link URL Direct' di bawah untuk memasukkan link .mp4 dari Cloud (Google Drive, Dropbox, atau Hosting Anda) agar lancar di Smart-TV!");
+      return;
+    }
 
     try {
-      const res = await fetch(`${window.location.origin}/api/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (type === 'slide') {
-          setSlides([...slides, { id: data.filename, url: data.url }]);
-        } else if (type === 'video') {
-          setVideos([...videos, { id: data.filename, url: data.url }]);
-        } else if (type === 'leftBg') {
-          setLeftBgImage(data.url);
+      if (type === 'leftBg' || type === 'slide') {
+        const compressedBase64 = await compressImage(file);
+        if (type === 'leftBg') {
+          setLeftBgImage(compressedBase64);
+        } else if (type === 'slide') {
+          const timestampId = `slide-${Date.now()}`;
+          setSlides([...slides, { id: timestampId, url: compressedBase64 }]);
         }
+      } else if (type === 'video') {
+        // Read small video as standard base64 data-url
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+          const result = reader.result as string;
+          const timestampId = `video-${Date.now()}`;
+          setVideos([...videos, { id: timestampId, url: result }]);
+        };
       }
     } catch (error) {
-      alert("Proses upload gagal, silakan coba lagi.");
+      alert("Proses pemrosesan file gagal, silakan coba lagi.");
     }
   };
 
   const removeFile = async (filename: string, type: 'slide' | 'video') => {
-    try {
-      await fetch(`${window.location.origin}/api/upload/${filename}`, { method: "DELETE" });
-      if (type === 'slide') {
-        setSlides(slides.filter(s => s.id !== filename));
-      } else {
-        setVideos(videos.filter(v => v.id !== filename));
-      }
-    } catch (e) {
-      console.error(e);
+    if (type === 'slide') {
+      setSlides(slides.filter(s => s.id !== filename));
+    } else {
+      setVideos(videos.filter(v => v.id !== filename));
     }
   };
 
@@ -205,10 +244,19 @@ export default function AdminMedia() {
                 <div className="flex flex-col items-center justify-center pt-3 pb-4">
                   <UploadCloud className="w-8 h-8 text-gray-400 mb-1" />
                   <p className="text-xs text-gray-600 font-medium">Klik untuk pilih & unggah Foto Masjid Baru</p>
-                  <p className="text-[10px] text-gray-400 mt-1">Mendukung format JPG, PNG</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Mendukung format JPG, PNG (Kompres Otomatis)</p>
                 </div>
                 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'leftBg')} />
               </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Atau masukkan Link URL Foto langsung (Contoh: https://...)"
+                  value={leftBgImage.startsWith("data:") ? "" : leftBgImage}
+                  onChange={(e) => setLeftBgImage(e.target.value)}
+                  className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                />
+              </div>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -318,6 +366,29 @@ export default function AdminMedia() {
                 </div>
                 <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'slide')} />
               </label>
+
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Atau tempel Link URL Gambar langsung (https://...)"
+                  value={manualSlideUrl}
+                  onChange={(e) => setManualSlideUrl(e.target.value)}
+                  className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (manualSlideUrl) {
+                      const tempId = `slide-link-${Date.now()}`;
+                      setSlides([...slides, { id: tempId, url: manualSlideUrl }]);
+                      setManualSlideUrl("");
+                    }
+                  }}
+                  className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shrink-0 flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" /> Tambah
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
@@ -351,6 +422,29 @@ export default function AdminMedia() {
                 </div>
                 <input type="file" className="hidden" accept="video/mp4" onChange={(e) => handleFileUpload(e, 'video')} />
               </label>
+
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Atau tempel Link URL Video langsung (.mp4)"
+                  value={manualVideoUrl}
+                  onChange={(e) => setManualVideoUrl(e.target.value)}
+                  className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (manualVideoUrl) {
+                      const tempId = `video-link-${Date.now()}`;
+                      setVideos([...videos, { id: tempId, url: manualVideoUrl }]);
+                      setManualVideoUrl("");
+                    }
+                  }}
+                  className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shrink-0 flex items-center gap-1"
+                >
+                  <Plus className="w-4 h-4" /> Tambah
+                </button>
+              </div>
             </div>
 
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">

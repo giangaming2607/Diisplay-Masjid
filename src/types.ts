@@ -5,6 +5,7 @@ export interface MosqueSettings {
     lat: number;
     lng: number;
     city: string;
+    timezone?: 'WIB' | 'WITA' | 'WIT';
   };
   display: {
     mode: 'schedule' | 'slide' | 'video' | 'mixed';

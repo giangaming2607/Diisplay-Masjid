@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Routes, Route, useNavigate, Link, useLocation } from "react-router-dom";
-import { Settings, MapPin, Image as ImageIcon, Video, LogOut, Type, MonitorPlay, Activity, Menu, ChevronLeft, ChevronRight } from "lucide-react";
+import { Settings, MapPin, Image as ImageIcon, Video, LogOut, Type, MonitorPlay, Activity, Menu, ChevronLeft, ChevronRight, Palette } from "lucide-react";
 import { cn } from "../../lib/utils";
 
 import AdminGeneral from "./AdminGeneral";
 import AdminLocation from "./AdminLocation";
 import AdminMedia from "./AdminMedia";
+import AdminThemes from "./AdminThemes";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ export default function AdminLayout() {
   const navItems = [
     { name: "Data Masjid", path: "/admin", icon: Settings },
     { name: "Lokasi & Waktu", path: "/admin/location", icon: MapPin },
+    { name: "Desain Tampilan", path: "/admin/themes", icon: Palette },
     { name: "Media & Slides", path: "/admin/media", icon: ImageIcon },
     { name: "Preview Layar", path: "/", icon: MonitorPlay, external: true },
   ];
@@ -144,9 +146,10 @@ export default function AdminLayout() {
           </div>
         )}
 
-        <Routes>
+         <Routes>
           <Route path="/" element={<AdminGeneral />} />
           <Route path="/location" element={<AdminLocation />} />
+          <Route path="/themes" element={<AdminThemes />} />
           <Route path="/media" element={<AdminMedia />} />
         </Routes>
       </main>

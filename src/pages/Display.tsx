@@ -31,10 +31,19 @@ export default function Display() {
     return () => clearInterval(interval);
   }, []);
 
+  // Convert standard system Date to exact Indonesian timezone (WIB/WITA/WIT) selected
+  const localMosqueTime = useMemo(() => {
+    const tz = settings?.location.timezone || "WIB";
+    const tzOffsetHours = tz === "WIT" ? 9 : tz === "WITA" ? 8 : 7;
+    // Calculate UTC millisecond epoch, then add the chosen offset
+    const utcTimestamp = now.getTime() + (now.getTimezoneOffset() * 60000);
+    return new Date(utcTimestamp + (3600000 * tzOffsetHours));
+  }, [now, settings?.location.timezone]);
+
   // Calculate standard Kemenag Prayer times
   const prayerTimesInfo = useMemo(() => {
     if (!settings) return null;
-    const pt = getPrayerTimes(now, settings.location.lat, settings.location.lng);
+    const pt = getPrayerTimes(localMosqueTime, settings.location.lat, settings.location.lng);
     
     // Add Imsak (10 mins before Fajr)
     const imsak = new Date(pt.fajr.getTime() - 10 * 60000);
@@ -48,13 +57,13 @@ export default function Display() {
       { id: 'maghrib', name: 'MAGHRIB', time: pt.maghrib, color: 'bg-red-650', isDailyPrayer: true },
       { id: 'isya', name: 'ISYA', time: pt.isha, color: 'bg-indigo-900', isDailyPrayer: true },
     ];
-  }, [settings, now.toDateString()]); // re-calc daily
+  }, [settings, localMosqueTime.toDateString()]); // re-calc daily
 
   // Find next prayer to show hitung mundur
   const nextPrayer = useMemo(() => {
     if (!prayerTimesInfo) return null;
-    return prayerTimesInfo.find(p => p.time > now) || prayerTimesInfo[0];
-  }, [prayerTimesInfo, now]);
+    return prayerTimesInfo.find(p => p.time > localMosqueTime) || prayerTimesInfo[0];
+  }, [prayerTimesInfo, localMosqueTime]);
 
   // Determine priority states: Adzan, Iqomah, and Sholat (Quiet Screen)
   const activePrayerEvent = useMemo(() => {
@@ -68,7 +77,7 @@ export default function Display() {
 
     for (const p of activePrayers) {
       const ptTime = p.time.getTime();
-      const elapsedMs = now.getTime() - ptTime;
+      const elapsedMs = localMosqueTime.getTime() - ptTime;
       const elapsedMinutes = elapsedMs / 60000;
 
       if (elapsedMinutes >= 0) {
@@ -83,7 +92,7 @@ export default function Display() {
         // 2. IQOMAH COUNTDOWN PERIOD
         else if (elapsedMinutes < (adzanDurationMinutes + iqomahMinutes)) {
           const finishedAdzanTime = ptTime + (adzanDurationMinutes * 60000);
-          const elapsedSinceAdzan = now.getTime() - finishedAdzanTime;
+          const elapsedSinceAdzan = localMosqueTime.getTime() - finishedAdzanTime;
           const totalIqomahMs = iqomahMinutes * 60000;
           const remainingMs = totalIqomahMs - elapsedSinceAdzan;
           return {
@@ -103,7 +112,7 @@ export default function Display() {
     }
 
     return null;
-  }, [prayerTimesInfo, now, settings]);
+  }, [prayerTimesInfo, localMosqueTime, settings]);
 
   // Handle playing Adzan sound & alarms
   const lastEventStatus = useRef<string | null>(null);
@@ -182,7 +191,7 @@ export default function Display() {
   // Calculate formatted prayer countdown string
   const countdownText = (() => {
     if (!nextPrayer) return "";
-    const diffMs = nextPrayer.time.getTime() - now.getTime();
+    const diffMs = nextPrayer.time.getTime() - localMosqueTime.getTime();
     const duration = moment.duration(diffMs);
     const hrs = Math.floor(duration.asHours());
     const mins = duration.minutes();
@@ -192,10 +201,32 @@ export default function Display() {
 
   const isWideScreen = settings.display.mediaFullScreen && (currentMode === 'slide' || currentMode === 'video') && !activePrayerEvent;
 
+  const isDarkBg = useMemo(() => {
+    if (!settings?.display.bgColor) return false;
+    const hex = settings.display.bgColor.replace('#', '');
+    if (hex.length < 6) return false;
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness < 128;
+  }, [settings?.display.bgColor]);
+
+  const isDarkBox = useMemo(() => {
+    if (!settings?.display.boxColor) return false;
+    const hex = settings.display.boxColor.replace('#', '');
+    if (hex.length < 6) return false;
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness < 128;
+  }, [settings?.display.boxColor]);
+
   return (
     <div 
       className="h-screen w-screen overflow-hidden font-sans flex flex-col transition-colors duration-1000"
-      style={{ backgroundColor: settings.display.bgColor || "#f3f4f6", color: "#1f2937" }}
+      style={{ backgroundColor: settings.display.bgColor || "#f3f4f6", color: isDarkBg ? "#f8fafc" : "#1f2937" }}
     >
       
       {/* Sound Overlay Activation Guide (required by current browser standards for audio play) */}
@@ -290,7 +321,10 @@ export default function Display() {
       {/* NORMAL LAYOUT DISPLAY */}
       <AnimatePresence>
         {!isWideScreen && (
-          <header className="h-[15%] w-full bg-white shadow-md flex items-center px-8 relative z-10 border-b border-gray-100">
+          <header className={cn(
+            "h-[15%] w-full flex items-center px-8 relative z-10 border-b transition-colors duration-500",
+            isDarkBg ? "bg-slate-950/80 border-slate-850 text-white shadow-2xl backdrop-blur-md" : "bg-white border-gray-100 text-slate-900 shadow-md"
+          )}>
             {/* Top Left: Clock Card with elegant frame & details base */}
             <div className="w-1/4 flex flex-col justify-center h-full py-2">
               <div className="bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-lg border border-slate-800 flex flex-col justify-between h-full relative overflow-hidden">
@@ -304,7 +338,9 @@ export default function Display() {
                       {moment(now).format("ss")}
                     </span>
                   </div>
-                  <span className="text-[10px] text-slate-400 tracking-widest font-extrabold pr-0.5">WIB</span>
+                  <span className="text-[10px] text-slate-400 tracking-widest font-extrabold pr-0.5 uppercase">
+                    {settings.location.timezone || "WIB"}
+                  </span>
                 </div>
                 
                 {/* Label Strip below Clock Digits as requested */}
@@ -320,25 +356,46 @@ export default function Display() {
 
             {/* Top Center: Mosque Info and elegant subheader */}
             <div className="w-2/4 flex flex-col items-center justify-center text-center">
-              <div className="inline-flex items-center gap-2 bg-emerald-50 text-emerald-800 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest border border-emerald-200/50 mb-1 animate-pulse">
+              <div className={cn(
+                "inline-flex items-center gap-2 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest border mb-1 animate-pulse",
+                isDarkBg ? "bg-emerald-950/60 text-emerald-300 border-emerald-800/55" : "bg-emerald-50 text-emerald-800 border-emerald-200/50"
+              )}>
                 🕌 JAM DIGITAL MASJID
               </div>
-              <h1 className="text-3xl md:text-3xl font-extrabold text-slate-900 tracking-tight uppercase leading-none drop-shadow-sm font-sans">
+              <h1 className={cn(
+                "text-2xl md:text-3xl font-extrabold tracking-tight uppercase leading-none drop-shadow-sm font-sans",
+                isDarkBg ? "text-white" : "text-slate-950"
+              )}>
                 {settings.mosqueName}
               </h1>
-              <p className="text-xs text-gray-500 mt-1 font-semibold tracking-wide">
+              <p className={cn(
+                "text-xs mt-1 font-semibold tracking-wide truncate max-w-lg",
+                isDarkBg ? "text-slate-400" : "text-gray-500"
+              )}>
                 {settings.mosqueAddress}
               </p>
             </div>
 
             {/* Top Right: Dates inside elegant card frame */}
             <div className="w-1/4 flex flex-col items-end justify-center text-right border-l h-5/6 border-gray-200 pl-6 py-1">
-              <div className="bg-gradient-to-br from-blue-50 to-slate-50 border border-blue-100 rounded-2xl px-5 py-2 flex flex-col items-end shadow-sm justify-center h-full">
-                <span className="text-xs font-bold text-blue-500 tracking-widest uppercase mb-0.5 font-sans">KALENDER JASMA</span>
-                <div className="text-sm md:text-base font-extrabold text-blue-900 tracking-wide uppercase leading-none">
+              <div className={cn(
+                "border rounded-2xl px-5 py-2 flex flex-col items-end shadow-sm justify-center h-full transition-colors",
+                isDarkBg ? "bg-slate-900 border-slate-800 text-slate-100" : "bg-gradient-to-br from-blue-50 to-slate-50 border-blue-100 text-slate-800"
+              )}>
+                <span className={cn(
+                  "text-xs font-bold tracking-widest uppercase mb-0.5 font-sans",
+                  isDarkBg ? "text-blue-400" : "text-blue-500"
+                )}>KALENDER JASMA</span>
+                <div className={cn(
+                  "text-sm md:text-base font-extrabold tracking-wide uppercase leading-none",
+                  isDarkBg ? "text-white" : "text-blue-900"
+                )}>
                   {moment(now).format("dddd, DD MMMM")}
                 </div>
-                <div className="text-xs font-bold text-emerald-700 mt-1 uppercase tracking-wide">
+                <div className={cn(
+                  "text-xs font-bold mt-1 uppercase tracking-wide",
+                  isDarkBg ? "text-emerald-400" : "text-emerald-700"
+                )}>
                   {hijriFormatter.format(now).replace(" AH", "")} H
                 </div>
               </div>

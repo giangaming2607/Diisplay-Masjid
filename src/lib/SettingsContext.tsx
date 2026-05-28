@@ -10,6 +10,7 @@ const DEFAULT_SETTINGS: MosqueSettings = {
     lat: -6.2088,
     lng: 106.8456,
     city: "Jakarta",
+    timezone: "WIB",
   },
   display: {
     mode: "mixed",

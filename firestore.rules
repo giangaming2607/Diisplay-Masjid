@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default safety catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ID validation guard
+    function isValidId(id) {
+       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Mosque Settings collection rule
+    match /mosqueSettings/{docId} {
+      allow read: if true;
+      allow create, update: if isValidId(docId) && isValidSettings(request.resource.data);
+      allow delete: if false;
+    }
+
+    // Validation schema helper
+    function isValidSettings(data) {
+      return data.keys().hasAll(['mosqueName', 'mosqueAddress', 'location', 'display', 'audio', 'slides', 'videos'])
+        && data.keys().size() == 7
+        && data.mosqueName is string && data.mosqueName.size() <= 100
+        && data.mosqueAddress is string && data.mosqueAddress.size() <= 200
+        && data.location is map
+        && data.location.lat is number
+        && data.location.lng is number
+        && data.location.city is string && data.location.city.size() <= 100
+        && data.display is map
+        && data.display.mode is string && data.display.mode.size() <= 50
+        && data.display.slideDuration is number
+        && data.display.runningText is string && data.display.runningText.size() <= 1000
+        && data.display.runningTextSpeed is string && data.display.runningTextSpeed.size() <= 20
+        && data.audio is map
+        && data.audio.adzanActive is bool
+        && data.audio.adzanVolume is number
+        && data.audio.iqomahActive is bool
+        && data.audio.iqomahDuration is number
+        && data.audio.iqomahVolume is number
+        && data.slides is list
+        && data.videos is list;
+    }
+  }
+}

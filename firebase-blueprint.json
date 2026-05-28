@@ -1,0 +1,168 @@
+{
+  "entities": {
+    "MosqueSettings": {
+      "title": "MosqueSettings",
+      "description": "Configuration object for mosque, including location, displaying, slides, videos, and warning audio settings",
+      "type": "object",
+      "properties": {
+        "mosqueName": {
+          "type": "string",
+          "description": "Name of the mosque"
+        },
+        "mosqueAddress": {
+          "type": "string",
+          "description": "Physical address of the mosque"
+        },
+        "location": {
+          "$ref": "#/entities/Location",
+          "description": "Dhuhr and other prayer times calculation location coordinate details"
+        },
+        "display": {
+          "$ref": "#/entities/Display",
+          "description": "Visual presentation specifications"
+        },
+        "audio": {
+          "$ref": "#/entities/Audio",
+          "description": "Adzan and iqomah alarms volume and status audio parameters"
+        },
+        "slides": {
+          "type": "array",
+          "description": "Array of slide images URL links"
+        },
+        "videos": {
+          "type": "array",
+          "description": "Array of MP4 videotron urls"
+        }
+      },
+      "required": [
+        "mosqueName",
+        "mosqueAddress",
+        "location",
+        "display",
+        "audio",
+        "slides",
+        "videos"
+      ]
+    },
+    "Location": {
+      "title": "Location",
+      "description": "Coordinates & city location parameters",
+      "type": "object",
+      "properties": {
+        "lat": {
+          "type": "number",
+          "description": "Latitude coordinate"
+        },
+        "lng": {
+          "type": "number",
+          "description": "Longitude coordinate"
+        },
+        "city": {
+          "type": "string",
+          "description": "Indonesian city / district name"
+        }
+      },
+      "required": [
+        "lat",
+        "lng",
+        "city"
+      ]
+    },
+    "Display": {
+      "title": "Display",
+      "description": "Screen styling configuration options",
+      "type": "object",
+      "properties": {
+        "mode": {
+          "type": "string",
+          "enum": [
+            "schedule",
+            "slide",
+            "video",
+            "mixed"
+          ]
+        },
+        "slideDuration": {
+          "type": "number",
+          "description": "Duration per slide"
+        },
+        "mixedPattern": {
+          "type": "array",
+          "description": "Order and timing pattern for mixed mode rotating sections"
+        },
+        "runningText": {
+          "type": "string",
+          "description": "Bottom message line"
+        },
+        "runningTextSpeed": {
+          "type": "string",
+          "enum": [
+            "slow",
+            "medium",
+            "fast"
+          ]
+        },
+        "leftBgImage": {
+          "type": "string",
+          "description": "Image url on side pane"
+        },
+        "mediaFullScreen": {
+          "type": "boolean"
+        },
+        "bgColor": {
+          "type": "string"
+        },
+        "boxColor": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mode",
+        "slideDuration",
+        "runningText",
+        "runningTextSpeed"
+      ]
+    },
+    "Audio": {
+      "title": "Audio",
+      "description": "Adzan and countdown chime preferences",
+      "type": "object",
+      "properties": {
+        "adzanActive": {
+          "type": "boolean"
+        },
+        "adzanVolume": {
+          "type": "number"
+        },
+        "iqomahActive": {
+          "type": "boolean"
+        },
+        "iqomahDuration": {
+          "type": "number"
+        },
+        "iqomahVolume": {
+          "type": "number"
+        },
+        "warningAudioActive": {
+          "type": "boolean"
+        },
+        "warningMinutes": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "adzanActive",
+        "adzanVolume",
+        "iqomahActive",
+        "iqomahDuration",
+        "iqomahVolume"
+      ]
+    }
+  },
+  "firestore": {
+    "mosqueSettings": {
+      "schema": "MosqueSettings",
+      "description": "Global collection containing single dynamic global config document"
+    }
+  }
+}

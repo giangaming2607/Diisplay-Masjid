@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { io, Socket } from 'socket.io-client';
+import { doc, getDoc, setDoc, onSnapshot, getDocFromServer } from 'firebase/firestore';
 import { MosqueSettings } from '../types';
+import { db, handleFirestoreError, OperationType } from './firebase';
 
 const DEFAULT_SETTINGS: MosqueSettings = {
   mosqueName: "Masjid Baiturrahman",
@@ -43,7 +44,7 @@ const DEFAULT_SETTINGS: MosqueSettings = {
 interface SettingsContextProps {
   settings: MosqueSettings | null;
   updateSettings: (newSettings: Partial<MosqueSettings>) => Promise<void>;
-  socket: Socket | null;
+  socket: null;
 }
 
 const SettingsContext = createContext<SettingsContextProps>({
@@ -56,24 +57,22 @@ export const useSettings = () => useContext(SettingsContext);
 
 export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<MosqueSettings | null>(null);
-  const [socket, setSocket] = useState<Socket | null>(null);
+
+  // Validate Firestore Connection on boot
+  useEffect(() => {
+    async function testConnection() {
+      try {
+        await getDocFromServer(doc(db, 'test', 'connection'));
+      } catch (error) {
+        if (error instanceof Error && error.message.includes('the client is offline')) {
+          console.error("Please check your Firebase configuration.");
+        }
+      }
+    }
+    testConnection();
+  }, []);
 
   useEffect(() => {
-    // Determine the base URL for the API and socket
-    const baseUrl = window.location.origin;
-    
-    // Connect to websocket
-    let newSocket: Socket | null = null;
-    try {
-      newSocket = io(baseUrl, {
-        timeout: 5000,
-        reconnectionAttempts: 3,
-      });
-      setSocket(newSocket);
-    } catch (e) {
-      console.warn("Could not establish websocket connection. Falling back into offline polling mode.", e);
-    }
-
     // Try reading fallback from localStorage first immediately to avoid loading flash
     const localFallback = localStorage.getItem('jasma_settings');
     if (localFallback) {
@@ -86,64 +85,71 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setSettings(DEFAULT_SETTINGS);
     }
 
-    // Fetch initial settings from server & handle parsing failures gracefully
-    fetch(`${baseUrl}/api/settings`)
-      .then(async res => {
-        if (!res.ok) throw new Error("HTTP error: " + res.status);
-        const text = await res.text();
-        // Shield from Vercel dynamic HTML fallback pages in static builds
-        if (text.trim().startsWith("<")) {
-          throw new Error("Invalid format: Server returned HTML page instead of JSON API settings.");
-        }
-        return JSON.parse(text);
-      })
-      .then(data => {
-        if (data && typeof data === 'object' && 'mosqueName' in data) {
-          setSettings(data);
-          localStorage.setItem('jasma_settings', JSON.stringify(data));
-        }
-      })
-      .catch(err => {
-        console.warn("Bypassed server settings pull. Local storage active.", err);
-        // Ensure settings are set to something valid so the UI doesn't remain blank
-        setSettings(prev => prev || DEFAULT_SETTINGS);
-      });
-
-    // Listen for updates
-    if (newSocket) {
-      newSocket.on('settingsUpdated', (updatedSettings) => {
-        setSettings(updatedSettings);
-        localStorage.setItem('jasma_settings', JSON.stringify(updatedSettings));
-      });
-    }
+    // Subscribe to Firestore for live real-time updates
+    const docRef = doc(db, "mosqueSettings", "global");
+    const unsubscribe = onSnapshot(docRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.data() as MosqueSettings;
+        setSettings(data);
+        localStorage.setItem('jasma_settings', JSON.stringify(data));
+      } else {
+        // Doc doesn't exist, let's initialize it in Firestore
+        setDoc(docRef, DEFAULT_SETTINGS)
+          .then(() => {
+            setSettings(DEFAULT_SETTINGS);
+            localStorage.setItem('jasma_settings', JSON.stringify(DEFAULT_SETTINGS));
+          })
+          .catch((err) => {
+            console.error("Failed to initialize default settings:", err);
+          });
+      }
+    }, (error) => {
+      // Missing or insufficient permissions or other Firebase errors must be caught
+      handleFirestoreError(error, OperationType.GET, "mosqueSettings/global");
+    });
 
     return () => {
-      if (newSocket) newSocket.close();
+      unsubscribe();
     };
   }, []);
 
   const updateSettings = async (newSettings: Partial<MosqueSettings>) => {
-    // Determine current settings or fallback
     const current = settings || DEFAULT_SETTINGS;
-    const merged = { ...current, ...newSettings };
     
-    // Optimistic UI updates
+    // Perform safety deep merging to preserve fields
+    const merged: MosqueSettings = {
+      ...current,
+      ...newSettings,
+      location: {
+        ...current.location,
+        ...(newSettings.location || {}),
+      },
+      display: {
+        ...current.display,
+        ...(newSettings.display || {}),
+      },
+      audio: {
+        ...current.audio,
+        ...(newSettings.audio || {}),
+      },
+      slides: newSettings.slides !== undefined ? newSettings.slides : current.slides,
+      videos: newSettings.videos !== undefined ? newSettings.videos : current.videos,
+    };
+
+    // Optimistically update state & local storage
     setSettings(merged);
     localStorage.setItem('jasma_settings', JSON.stringify(merged));
-    
+
     try {
-      await fetch(`${window.location.origin}/api/settings`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newSettings),
-      });
-    } catch (e) {
-      console.warn("API write unavailable. Saved to local storage successfully.", e);
+      const docRef = doc(db, "mosqueSettings", "global");
+      await setDoc(docRef, merged);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, "mosqueSettings/global");
     }
   };
 
   return (
-    <SettingsContext.Provider value={{ settings, updateSettings, socket }}>
+    <SettingsContext.Provider value={{ settings, updateSettings, socket: null }}>
       {children}
     </SettingsContext.Provider>
   );

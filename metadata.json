@@ -1,0 +1,8 @@
+{
+  "name": "Jasma Digital Masjid",
+  "description": "Sistem Informasi Jadwal Sholat, Jam Digital, dan Videotron Masjid Canggih.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

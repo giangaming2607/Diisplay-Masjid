@@ -1298,6 +1298,193 @@ export default function Display() {
             </div>
           )}
         </div>
+      ) : layoutTemplate === 'layout-03' ? (
+        // LAYOUT 03: SLIDE LEFT, SCHEDULE RIGHT (Vertical)
+        <div className="h-full w-full flex flex-col p-6 gap-6 relative z-10 bg-[#1e1b18]">
+          <header className="w-full flex justify-between select-none shrink-0 h-[10vh]">
+            <div className="flex items-center gap-4 text-white">
+              {resolvedLogoUrl && <img src={resolvedLogoUrl} alt="Logo" className="w-16 h-16 object-contain" />}
+              <div className="flex flex-col justify-center">
+                 <h1 className="text-3xl font-black">{settings?.mosqueName || "Masjid Abu Bakar"}</h1>
+                 <p className="text-sm text-gray-300">{settings?.mosqueAddress}</p>
+              </div>
+            </div>
+            
+            <div className="flex bg-[#3c362a] rounded-xl overflow-hidden border border-white/10 shadow-lg h-full max-h-[80px]">
+               <div className="bg-[#a3907c] text-[#2c261f] flex flex-col justify-center px-4 font-bold text-center">
+                 <span className="text-2xl leading-none">{moment(now).format("DD")}</span>
+               </div>
+               <div className="flex flex-col justify-center px-4">
+                 <span className="text-sm font-bold uppercase tracking-wider text-gray-300">{moment(now).format("dddd").replace(/Jum'at/gi, 'Jumat')}</span>
+                 <span className="text-[10px] text-gray-400 max-w-[120px] truncate">{hijriText}</span>
+               </div>
+               <div className="flex flex-col justify-center px-4 border-l border-white/5 bg-[#2a241b]">
+                 <span className="text-xl font-bold uppercase tracking-wider text-white">{moment(now).format("MMMM YYYY")}</span>
+               </div>
+            </div>
+          </header>
+
+          <main className="flex-1 flex gap-6 min-h-0">
+             <div className="flex-[2] rounded-3xl overflow-hidden shadow-2xl relative">
+                {renderMediaReceptacle("w-full h-full")}
+             </div>
+             
+             <div className="flex-1 flex flex-col gap-4">
+                <div className="bg-slate-300 rounded-3xl p-4 flex gap-4 items-center justify-center shadow-inner relative overflow-hidden h-[15vh] shrink-0">
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent to-white/30" />
+                   <div className="relative z-10 flex text-slate-800 flex-col items-center">
+                      <span className="text-[5px] uppercase tracking-widest font-black opacity-50 mb-1">WAKTU SEKARANG</span>
+                      <span className="text-6xl font-black font-mono tracking-tighter leading-none">{moment(now).format("HH:mm")}</span>
+                   </div>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-2">
+                   {prayerTimesInfo.map((pt, i) => {
+                      const isNext = nextPrayer?.id === pt.id;
+                      const bgColors = [
+                        'bg-[#068ba0]', 'bg-[#4b33a8]', 'bg-[#d26c11]', 'bg-[#982b8a]', 'bg-[#b62436]', 'bg-[#0661a0]'
+                      ];
+                      return (
+                         <div key={i} className={cn(
+                           "flex-1 rounded-2xl flex items-center justify-between px-6 shadow-md transition-all duration-300",
+                           isNext ? "bg-amber-400 text-slate-900 scale-[1.03] shadow-amber-500/20 shadow-xl border-4 border-white font-black z-10" : `${bgColors[i]} text-white opacity-90`
+                         )}>
+                            <span className="text-2xl font-bold uppercase tracking-widest">{pt.name}</span>
+                            <span className="text-4xl font-black font-mono">{moment(pt.time).format("HH:mm")}</span>
+                         </div>
+                      );
+                   })}
+                </div>
+             </div>
+          </main>
+
+          <div className="h-[7vh] shrink-0 bg-[#2c261f] rounded-2xl border border-white/5 overflow-hidden flex items-center shadow-inner text-white px-2">
+             {renderMarqueeFooter()}
+          </div>
+        </div>
+
+      ) : layoutTemplate === 'layout-06' ? (
+        // LAYOUT 06: SCHEDULE LEFT, BIG MEDIA RIGHT
+        <div className="h-full w-full flex flex-col p-6 gap-6 relative z-10 bg-slate-900">
+           <header className="w-full flex justify-between select-none shrink-0 h-[8vh] items-end pb-4 border-b-2 border-slate-700/50">
+               <div className="text-white flex-1 pl-4 flex gap-4 items-center">
+                  {resolvedLogoUrl && <img src={resolvedLogoUrl} alt="Logo" className="w-12 h-12 object-contain" />}
+                  <div>
+                    <h1 className="text-3xl font-black tracking-tight">{settings?.mosqueName}</h1>
+                    <p className="text-sm text-gray-400">{settings?.mosqueAddress}</p>
+                  </div>
+               </div>
+               
+               <div className="flex gap-16 text-gray-300 text-sm font-bold pr-4">
+                  <div className="flex flex-col items-center">
+                     <span>{moment(now).format("DD MMMM YYYY")}</span>
+                  </div>
+                  <div className="flex flex-col items-center text-amber-500">
+                     <span>{moment(now).format("dddd").replace(/Jum'at/gi, 'Jumat')} / {hijriText}</span>
+                  </div>
+               </div>
+           </header>
+
+           <main className="flex-1 flex gap-6 min-h-0">
+               <div className="flex-[1.2] flex flex-col gap-3 max-w-sm">
+                  <div className="h-[18vh] bg-[#cbd1d4] rounded-3xl shrink-0 flex items-center justify-center p-4 shadow-xl border-4 border-slate-700">
+                     <span className="text-7xl font-black font-mono tracking-tighter text-slate-900">{moment(now).format("HH:mm")}</span>
+                     <span className="text-3xl font-bold font-mono text-slate-500 ml-2 mt-4">{moment(now).format("ss")}</span>
+                  </div>
+
+                  <div className="flex-1 flex flex-col gap-2 mt-2">
+                     {prayerTimesInfo.map((pt, i) => {
+                        const isNext = nextPrayer?.id === pt.id;
+                        const colors = ['bg-[#4a3f35]', 'bg-[#3b2949]', 'bg-[#1b4353]', 'bg-[#3b593f]', 'bg-[#5e3b3e]', 'bg-[#7a3028]'];
+                        return (
+                           <div key={i} className={cn(
+                             "flex-1 rounded-r-3xl flex items-center justify-between px-6 shadow-md border-l-[12px] transition-colors relative overflow-hidden",
+                             isNext ? "bg-amber-100 text-slate-900 border-amber-500 font-extrabold scale-102 z-10" : `${colors[i]} border-slate-950 text-gray-200 opacity-80`
+                           )}>
+                              <span className="text-lg uppercase tracking-widest font-black">{pt.name}</span>
+                              <span className="text-3xl font-black font-mono">{moment(pt.time).format("HH:mm")}</span>
+                           </div>
+                        );
+                     })}
+                  </div>
+               </div>
+
+               <div className="flex-[3] rounded-[2rem] overflow-hidden shadow-2xl relative border border-slate-700">
+                   {renderMediaReceptacle("w-full h-full")}
+                   {nextIslamicEvent && (
+                     <div className="absolute bottom-0 left-0 right-0 bg-black/75 backdrop-blur text-white px-8 py-3 flex text-center justify-center text-lg font-bold border-t border-white/10">
+                        <span>{nextIslamicEvent.daysLeft} hari lagi {nextIslamicEvent.name}</span>
+                     </div>
+                   )}
+               </div>
+           </main>
+           
+           <div className="shrink-0 text-white flex items-center p-2 rounded-xl bg-slate-800 shadow-inner">
+              {renderMarqueeFooter()}
+           </div>
+        </div>
+
+      ) : layoutTemplate === 'layout-08' ? (
+        // LAYOUT 08: HORIZONTAL AT TOP, MEDIA BOTTOM
+        <div className="h-full w-full flex flex-col p-6 gap-6 relative z-10 bg-[#0d0904]">
+            <div className="flex w-full gap-3 h-[11vh] shrink-0">
+               {prayerTimesInfo.map((pt, i) => {
+                  const isNext = nextPrayer?.id === pt.id;
+                  const rowColors = ['bg-[#1c1c38]', 'bg-[#392e10]', 'bg-[#291e3e]', 'bg-[#40122e]', 'bg-[#3b0b18]', 'bg-[#142842]'];
+                  return (
+                     <div key={i} className={cn(
+                        "flex-1 rounded-2xl flex flex-col items-center justify-center border-t-[6px] shadow-xl transition-all relative overflow-hidden",
+                        isNext ? "bg-amber-100 text-slate-900 border-amber-500 scale-105 z-10 shadow-amber-500/20" : `${rowColors[i]} text-white border-white/20 opacity-90`
+                     )}>
+                        <span className="text-sm font-bold uppercase tracking-widest">{pt.name}</span>
+                        <span className="text-4xl font-black font-mono mt-1 leading-none">{moment(pt.time).format("HH:mm")}</span>
+                     </div>
+                  );
+               })}
+            </div>
+
+            <main className="flex-1 flex gap-6 min-h-0 items-stretch">
+               <div className="flex-1 flex flex-col gap-6 max-w-[360px]">
+                  <div className="bg-[#241a13] rounded-3xl p-6 shadow-2xl flex flex-col items-center justify-center border-2 border-[#36271c] min-h-[30%]">
+                     <div className="text-amber-500 font-bold tracking-widest text-xs uppercase mb-2">
+                        {moment(now).format("dddd").replace(/Jum'at/gi, 'Jumat')} / {moment(now).format("DD MMMM YYYY")}
+                     </div>
+                     <div className="flex items-baseline mb-2">
+                        <span className="text-[5rem] leading-none font-black font-mono text-white tracking-tighter">{moment(now).format("HH:mm")}</span>
+                     </div>
+                     <div className="text-[#a3907c] font-bold text-[10px] mt-1 uppercase tracking-wider text-center">{hijriText}</div>
+                  </div>
+
+                  <div className="flex-1 bg-[#16120e] rounded-3xl p-6 border-2 border-[#2a221a] flex flex-col shadow-inner">
+                     <h2 className="text-[#a3907c] font-black uppercase text-lg border-b-2 border-[#36271c] pb-3 mb-4">Agenda Masjid</h2>
+                     
+                     <div className="flex-1 overflow-hidden space-y-4">
+                        <div className="text-white">
+                           <div className="font-bold text-amber-500 text-sm">Kajian Ahad Pagi</div>
+                           <div className="opacity-70 text-xs mt-1">Pukul 06:00 - Selesai | Oleh: Ustadz Fulan</div>
+                        </div>
+                        <div className="text-white">
+                           <div className="font-bold text-amber-500 text-sm">TPA Anak</div>
+                           <div className="opacity-70 text-xs mt-1">Senin - Kamis, 16:00 WIB</div>
+                        </div>
+                     </div>
+                  </div>
+               </div>
+
+               <div className="flex-[2.5] flex flex-col gap-4">
+                  <div className="flex-1 rounded-[2rem] overflow-hidden shadow-2xl relative border-4 border-[#36271c]">
+                      {renderMediaReceptacle("w-full h-full")}
+                  </div>
+                  
+                  <div className="bg-[#590404] rounded-full px-6 py-2 text-white flex items-center shadow-xl border border-red-900/50">
+                     <div className="font-black whitespace-nowrap border-r-2 border-white/20 pr-4 mr-4 text-sm">
+                        {settings?.mosqueName}
+                     </div>
+                     {renderMarqueeFooter("text-base font-medium tracking-wide w-full")}
+                  </div>
+               </div>
+            </main>
+        </div>
       ) : (
         // DEFAULT: CLASSIC LAYOUT (LEFT COL SCHEDULE, RIGHT COL SLIDE)
         <div className="h-full w-full flex flex-col">

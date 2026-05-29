@@ -20,7 +20,7 @@ export interface MosqueSettings {
     logoUrl?: string;
     bootBgUrl?: string;
     fullScreenBgImage?: string;
-    layoutTemplate?: 'classic' | 'modern-grid' | 'sidebar-right' | 'minimal-elegant' | 'boxed-bottom-schedule';
+    layoutTemplate?: 'classic' | 'modern-grid' | 'sidebar-right' | 'minimal-elegant' | 'boxed-bottom-schedule' | 'layout-03' | 'layout-06' | 'layout-08';
   };
   audio: {
     adzanActive: boolean;

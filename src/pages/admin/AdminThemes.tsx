@@ -120,6 +120,24 @@ const LAYOUT_PRESETS: LayoutTemplatePreset[] = [
     name: "Split Jam Digital & Jadwal Horizontal",
     description: "Desain layout TV terbaru mirip Layout 05: jam digital kalender di bagian kanan atas info masjid, slide media di tengah dominan, serta susunan waktu sholat mendatar (horizontal) solid di bagian bawah.",
     badge: "Visual Terbaru"
+  },
+  {
+    id: "layout-03",
+    name: "Layout 03 (Jadwal Kanan, Media Kiri)",
+    description: "Mirip Layout 03: Info masjid & jam digital di atas jadwal sholat yang berada di sisi kanan, slide/media menempati porsi besar di sebelah kiri.",
+    badge: "Desain Baru 03"
+  },
+  {
+    id: "layout-06",
+    name: "Layout 06 (Jadwal Kiri, Jam Digital)",
+    description: "Mirip Layout 06: Jadwal sholat vertikal di kiri dengan jam digital di atasnya, media gambar/video porsi besar di sisi kanan.",
+    badge: "Desain Baru 06"
+  },
+  {
+    id: "layout-08",
+    name: "Layout 08 (Jadwal Atas, Media Bawah)",
+    description: "Mirip Layout 08: Jadwal horizontal rapi berderet di Header atas, membagi info jam dan slide media terpisah rapi dengan kalender.",
+    badge: "Desain Baru 08"
   }
 ];
 
@@ -424,6 +442,64 @@ export default function AdminThemes() {
                           <div className="flex-1 h-full bg-blue-600 rounded-sm" />
                           <div className="flex-1 h-full bg-emerald-600 rounded-sm" />
                           <div className="flex-1 h-full bg-purple-600 rounded-sm" />
+                        </div>
+                      </div>
+                    )}
+                    
+                    {tmpl.id === 'layout-03' && (
+                      <div className="w-full bg-gradient-to-br from-gray-800 to-gray-900 rounded-lg flex p-1 gap-1 relative overflow-hidden">
+                        <div className="flex-[2] bg-black/50 rounded flex flex-col pt-1 pl-1 items-start text-white">
+                           <div className="text-[4px] font-bold text-amber-500">Masjid Darussalam</div>
+                           <div className="text-[3px] text-gray-300">Jl. Pahlawan</div>
+                           <div className="flex-1 w-full bg-blue-900/40 rounded mt-1 shadow-inner relative flex justify-center items-center">
+                              <span className="text-[6px] font-black text-white/50 space-x-1 uppercase">MEDIA</span>
+                           </div>
+                        </div>
+                        <div className="flex-1 flex flex-col justify-start rounded bg-gray-900 border border-gray-700 shadow p-0.5 gap-0.5">
+                           <div className="text-center text-[5px] font-mono text-white mb-0.5 border-b border-gray-600 pb-0.5">14:26</div>
+                           <div className="bg-orange-800 h-2 rounded-sm" />
+                           <div className="bg-gray-800 h-2 rounded-sm" />
+                           <div className="bg-gray-800 h-2 rounded-sm" />
+                        </div>
+                      </div>
+                    )}
+
+                    {tmpl.id === 'layout-06' && (
+                      <div className="w-full bg-slate-800 rounded-lg flex p-1 gap-1 relative overflow-hidden">
+                        <div className="flex-[1] flex flex-col justify-start rounded bg-slate-900 border border-slate-700 shadow p-0.5 gap-0.5">
+                           <div className="bg-white text-black text-center text-[5px] font-mono font-bold rounded-sm py-0.5 mb-0.5">08:45</div>
+                           <div className="bg-indigo-900 h-2 rounded-sm" />
+                           <div className="bg-blue-600 h-2 rounded-sm" />
+                           <div className="bg-indigo-900 h-2 rounded-sm" />
+                        </div>
+                        <div className="flex-[2.5] flex flex-col relative text-white">
+                           <div className="flex justify-between items-start text-[4px] font-bold h-2">
+                             <span>Masjid Al-Ukhuwah</span>
+                             <span className="text-gray-400">12 Rabiul Awal</span>
+                           </div>
+                           <div className="flex-1 w-full bg-slate-700/50 rounded shadow-inner relative flex justify-center items-center overflow-hidden">
+                              <span className="text-[6px] font-black text-white/50 uppercase">GAMBAR</span>
+                           </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {tmpl.id === 'layout-08' && (
+                      <div className="w-full bg-gray-900 rounded-lg flex flex-col p-1 gap-1 relative overflow-hidden">
+                        <div className="flex gap-0.5 w-full bg-slate-800 rounded-sm p-0.5 shrink-0 justify-between items-center shadow-inner h-2.5">
+                          <div className="flex-1 h-full bg-indigo-900 rounded-sm" />
+                          <div className="flex-1 h-full bg-blue-600 rounded-sm" />
+                          <div className="flex-1 h-full bg-purple-900 rounded-sm" />
+                          <div className="flex-1 h-full bg-indigo-900 rounded-sm" />
+                        </div>
+                        <div className="flex-1 flex gap-1 items-stretch">
+                           <div className="flex-1 bg-black/60 border border-gray-700 rounded p-1 flex flex-col items-center justify-center text-white">
+                             <div className="text-[3px] text-gray-400 mb-0.5">Selasa, 14 Feb</div>
+                             <div className="text-[6px] font-mono font-bold">12:34</div>
+                           </div>
+                           <div className="flex-[2] bg-slate-800 rounded flex justify-center items-center relative overflow-hidden">
+                             <span className="text-[5px] font-black text-white/50 uppercase">INFO MASJID / SLIDE</span>
+                           </div>
                         </div>
                       </div>
                     )}

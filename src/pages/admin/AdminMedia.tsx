@@ -87,10 +87,15 @@ export default function AdminMedia() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Check file size limit for absolute safety
-    if (type === 'video' && file.size > 1.2 * 1024 * 1024) {
-      alert("⚠️ Video terlalu besar untuk disimpan langsung di serverless/static Vercel (Max 1.2MB).\n\nSilakan gunakan opsi 'Tambah via Link URL Direct' di bawah untuk memasukkan link .mp4 dari Cloud (Google Drive, Dropbox, atau Hosting Anda) agar lancar di Smart-TV!");
+    // Check file size limit (Batas maksimal 1 GB sesuai permintaan user)
+    if (type === 'video' && file.size > 1024 * 1024 * 1024) {
+      alert("⚠️ Video melebihi batas maksimal 1 GB!");
       return;
+    }
+
+    // Info edukasi detail mengenai batasan data-url di browser/database
+    if (type === 'video' && file.size > 1.2 * 1024 * 1024) {
+      alert("⚠️ Informasi: Batas video telah didekati/ditingkatkan menjadi 1 GB.\n\nNamun, harap diperhatikan bahwa menyimpan video berukuran besar secara langsung sebagai teks database cloud (Firestore/LocalStorage) memiliki batas fisik browser dan koneksi. Jika video gagal disimpan atau membuat loading TV lambat, sangat disarankan menggunakan fitur 'Tambah via Link URL Direct' (.mp4) di bawah agar performa TV Anda tetap lancar!");
     }
 
     try {
@@ -418,7 +423,7 @@ export default function AdminMedia() {
               <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
                 <div className="flex flex-col items-center justify-center pt-5 pb-6">
                   <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-500"><span className="font-semibold">Klik untuk unggah</span> (MP4)</p>
+                  <p className="text-sm text-gray-500"><span className="font-semibold">Klik untuk unggah</span> (MP4, Maks 1 GB)</p>
                 </div>
                 <input type="file" className="hidden" accept="video/mp4" onChange={(e) => handleFileUpload(e, 'video')} />
               </label>

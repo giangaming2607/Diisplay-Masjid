@@ -26,6 +26,8 @@ const DEFAULT_SETTINGS: MosqueSettings = {
     mediaFullScreen: false,
     bgColor: "#f3f4f6",
     boxColor: "#ffffff",
+    logoUrl: "",
+    bootBgUrl: "",
   },
   audio: {
     adzanActive: true,

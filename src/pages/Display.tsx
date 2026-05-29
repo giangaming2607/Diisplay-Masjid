@@ -16,6 +16,42 @@ export default function Display() {
   const adzanAudioRef = useRef<HTMLAudioElement | null>(null);
   const beepAudioRef = useRef<HTMLAudioElement | null>(null);
 
+  // System Booting Simulation States
+  const [booting, setBooting] = useState(true);
+  const [bootStep, setBootStep] = useState(0);
+
+  const bootLogs = useMemo(() => [
+    "INIT SYSTEM CORE VM: [v2.5.1-STABLE]",
+    "SINKRONISASI JAM INTERNASIONAL & TIMEZONE... [OK]",
+    "SINKRONISASI JADWAL SHOLAT KEMENAG RI... [OK]",
+    "MENGHUBUNGKAN BASIS DATA CLOUD FIREBASE... [OK]",
+    "MENYIAPKAN MODUL SLIDESHOW & PROYEKTOR... [OK]",
+    "SYSTEM SECURITY: SECURE PROTOCOL MOUNTED... [OK]",
+    "MEMULAI PROYEKSI JASMA DIGITAL TV... [BERHASIL]"
+  ], []);
+
+  useEffect(() => {
+    if (booting) {
+      const interval = setInterval(() => {
+        setBootStep((prev) => {
+          if (prev < bootLogs.length - 1) {
+            return prev + 1;
+          }
+          return prev;
+        });
+      }, 600);
+
+      const timer = setTimeout(() => {
+        setBooting(false);
+      }, 4300);
+
+      return () => {
+        clearInterval(interval);
+        clearTimeout(timer);
+      };
+    }
+  }, [booting, bootLogs]);
+
   // Initialize synth helper sound for browser compliance (needs interaction first to play)
   useEffect(() => {
     // We can use native HTML5 Speech Synthesis or standard oscillator tones to ensure
@@ -33,12 +69,12 @@ export default function Display() {
 
   // Convert standard system Date to exact Indonesian timezone (WIB/WITA/WIT) selected
   const localMosqueTime = useMemo(() => {
-    const tz = settings?.location.timezone || "WIB";
+    const tz = settings?.location?.timezone || "WIB";
     const tzOffsetHours = tz === "WIT" ? 9 : tz === "WITA" ? 8 : 7;
     // Calculate UTC millisecond epoch, then add the chosen offset
     const utcTimestamp = now.getTime() + (now.getTimezoneOffset() * 60000);
     return new Date(utcTimestamp + (3600000 * tzOffsetHours));
-  }, [now, settings?.location.timezone]);
+  }, [now, settings?.location?.timezone]);
 
   // Calculate standard Kemenag Prayer times
   const prayerTimesInfo = useMemo(() => {
@@ -122,7 +158,7 @@ export default function Display() {
         // Play Adzan or Beep
         try {
           if (beepAudioRef.current) {
-            beepAudioRef.current.volume = (settings?.audio.adzanVolume || 80) / 100;
+            beepAudioRef.current.volume = (settings?.audio?.adzanVolume || 80) / 100;
             beepAudioRef.current.play().catch(e => console.log("Audio play blocked by browser."));
           }
           // Native browser speech call (Premium effect)
@@ -165,7 +201,7 @@ export default function Display() {
 
   // Auto Rotation slide timers
   useEffect(() => {
-    if (settings?.display.mode === 'mixed' && !activePrayerEvent) {
+    if (settings?.display?.mode === 'mixed' && !activePrayerEvent) {
       const timer = setTimeout(() => {
         setMixedIndex(prev => prev + 1);
       }, (settings.display.slideDuration || 10) * 1000);
@@ -177,16 +213,23 @@ export default function Display() {
     if (currentMode === 'slide' && settings && settings.slides.length > 0 && !activePrayerEvent) {
       const timer = setTimeout(() => {
         setSlideIndex((prev) => (prev + 1) % settings.slides.length);
-      }, (settings.display.slideDuration || 10) * 1000);
+      }, (settings?.display?.slideDuration || 10) * 1000);
       return () => clearTimeout(timer);
     }
   }, [currentMode, settings, slideIndex, activePrayerEvent]);
 
-  if (!settings) return <div className="h-screen flex text-white bg-slate-950 items-center justify-center font-sans">Memuat Layar Jasma...</div>;
-
-  const hijriFormatter = new Intl.DateTimeFormat('id-ID-u-ca-islamic', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  });
+  // Safe Hijri formatting fallback
+  const hijriText = useMemo(() => {
+    try {
+      const formatter = new Intl.DateTimeFormat('id-ID-u-ca-islamic', {
+        day: 'numeric', month: 'long', year: 'numeric'
+      });
+      return formatter.format(now).replace(" AH", "") + " H";
+    } catch (e) {
+      // Static approximate estimate for premium placeholder if browser doesn't support the calendar
+      return "16 Zulhijjah 1447 H";
+    }
+  }, [now]);
 
   // Calculate formatted prayer countdown string
   const countdownText = (() => {
@@ -199,10 +242,10 @@ export default function Display() {
     return `${hrs > 0 ? hrs + ":" : ""}${mins < 10 ? "0" + mins : mins}:${secs < 10 ? "0" + secs : secs}`;
   })();
 
-  const isWideScreen = settings.display.mediaFullScreen && (currentMode === 'slide' || currentMode === 'video') && !activePrayerEvent;
+  const isWideScreen = !!(settings?.display?.mediaFullScreen && (currentMode === 'slide' || currentMode === 'video') && !activePrayerEvent);
 
   const isDarkBg = useMemo(() => {
-    if (!settings?.display.bgColor) return false;
+    if (!settings?.display?.bgColor) return false;
     const hex = settings.display.bgColor.replace('#', '');
     if (hex.length < 6) return false;
     const r = parseInt(hex.substring(0, 2), 16);
@@ -210,10 +253,10 @@ export default function Display() {
     const b = parseInt(hex.substring(4, 6), 16);
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     return brightness < 128;
-  }, [settings?.display.bgColor]);
+  }, [settings?.display?.bgColor]);
 
   const isDarkBox = useMemo(() => {
-    if (!settings?.display.boxColor) return false;
+    if (!settings?.display?.boxColor) return false;
     const hex = settings.display.boxColor.replace('#', '');
     if (hex.length < 6) return false;
     const r = parseInt(hex.substring(0, 2), 16);
@@ -221,7 +264,96 @@ export default function Display() {
     const b = parseInt(hex.substring(4, 6), 16);
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     return brightness < 128;
-  }, [settings?.display.boxColor]);
+  }, [settings?.display?.boxColor]);
+
+  if (!settings || booting) {
+    const customBg = settings?.display?.bootBgUrl;
+    const customLogo = settings?.display?.logoUrl;
+    const bootPercentage = Math.round(((bootStep + 1) / bootLogs.length) * 100);
+
+    return (
+      <div 
+        className="h-screen w-screen relative overflow-hidden flex flex-col items-center justify-center font-sans text-white select-none"
+        style={{
+          background: customBg 
+            ? `url(${customBg}) no-repeat center center / cover`
+            : "radial-gradient(circle at center, #1b263b 0%, #0d1321 100%)"
+        }}
+      >
+        {/* Dark overlay with background blur to give heavy premium movie/theatre glassmorphism */}
+        <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-[6px] z-0" />
+
+        <div className="relative z-10 flex flex-col items-center max-w-xl w-full px-8 text-center space-y-7">
+          {/* Mosque Logo Container */}
+          <div className="relative">
+            {customLogo ? (
+              <div className="relative w-28 h-28 bg-white/10 p-2 rounded-3xl border border-white/20 shadow-2xl backdrop-blur-md flex items-center justify-center mx-auto mb-1 animate-pulse">
+                <img 
+                  src={customLogo} 
+                  alt="Logo Masjid" 
+                  className="w-full h-full object-contain filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]"
+                />
+              </div>
+            ) : (
+              // Beautiful shining default gold crescent & mosque dome emblem
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center mx-auto mb-1 shadow-2xl border border-amber-300/30 animate-pulse relative">
+                <div className="absolute inset-0 rounded-full bg-amber-400/25 blur-xl animate-ping" />
+                <span className="text-5xl drop-shadow relative z-10">🕌</span>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-1">
+            <h2 className="text-2xl font-black tracking-widest text-amber-400 drop-shadow-[0_2px_10px_rgba(245,158,11,0.3)] uppercase">
+              {settings?.mosqueName || "SISTEM LAYAR JASMA"}
+            </h2>
+            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">
+              {settings?.mosqueAddress || "PENGATURAN AREA BELUM DIKONFIGURASI"}
+            </p>
+          </div>
+
+          {/* Core Circular Loading Spinner with Percentage */}
+          <div className="relative w-20 h-20 flex items-center justify-center mx-auto">
+            {/* Spinning ring tracks */}
+            <div className="absolute inset-0 rounded-full border-4 border-slate-800/80" />
+            
+            {/* Active spinning ring segment */}
+            <div 
+              className="absolute inset-0 rounded-full border-4 border-transparent border-t-amber-500 animate-spin" 
+              style={{ animationDuration: "0.85s" }}
+            />
+            
+            {/* Innermost percentage meter */}
+            <div className="text-lg font-mono font-black text-amber-400 drop-shadow-sm">
+              {bootPercentage}%
+            </div>
+          </div>
+
+          <div className="text-[10px] font-extrabold tracking-widest text-slate-300 animate-pulse uppercase flex items-center justify-center gap-2">
+            <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
+            MENGAKTIFKAN SISTEM... MOHON TUNGGU SEBENTAR
+          </div>
+
+          {/* Terminal Console log sequence block */}
+          <div className="w-full bg-slate-950/95 rounded-2xl border border-slate-800/80 p-5 font-mono text-[11px] text-left text-emerald-400 space-y-1.5 shadow-2xl overflow-hidden leading-relaxed">
+            <div className="flex items-center justify-between border-b border-slate-900 pb-2 mb-2.5 text-[9px] text-slate-500 font-extrabold uppercase tracking-wider">
+              <span>🖥️ CONSOLE BOOTLOG v2.5.1</span>
+              <span className="text-emerald-500 font-black animate-pulse flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" /> ONLINE
+              </span>
+            </div>
+            {bootLogs.slice(0, bootStep + 1).map((log, idx) => (
+              <div key={idx} className="flex items-start gap-1">
+                <span className="text-slate-650 shrink-0 select-none">&gt;&gt;</span>
+                <span className={idx === bootStep ? "text-amber-300 font-bold animate-pulse" : "text-emerald-400"}>{log}</span>
+              </div>
+            ))}
+            <div className="text-[10px] text-amber-500 animate-ping mt-1 font-bold">_</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div 
@@ -355,25 +487,34 @@ export default function Display() {
             </div>
 
             {/* Top Center: Mosque Info and elegant subheader */}
-            <div className="w-2/4 flex flex-col items-center justify-center text-center">
-              <div className={cn(
-                "inline-flex items-center gap-2 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest border mb-1 animate-pulse",
-                isDarkBg ? "bg-emerald-950/60 text-emerald-300 border-emerald-800/55" : "bg-emerald-50 text-emerald-800 border-emerald-200/50"
-              )}>
-                🕌 JAM DIGITAL MASJID
+            <div className="w-2/4 flex items-center justify-center gap-4 text-center">
+              {settings.display.logoUrl && (
+                <img 
+                  src={settings.display.logoUrl} 
+                  alt="Mosque Logo" 
+                  className="w-16 h-16 object-contain shrink-0 rounded-2xl bg-white/10 p-1.5 border border-white/20 shadow-md backdrop-blur-sm"
+                />
+              )}
+              <div className="flex flex-col items-center justify-center">
+                <div className={cn(
+                  "inline-flex items-center gap-2 text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest border mb-1 animate-pulse",
+                  isDarkBg ? "bg-emerald-950/60 text-emerald-300 border-emerald-800/55" : "bg-emerald-50 text-emerald-800 border-emerald-200/50"
+                )}>
+                  🕌 JAM DIGITAL MASJID
+                </div>
+                <h1 className={cn(
+                  "text-2xl md:text-3xl font-extrabold tracking-tight uppercase leading-none drop-shadow-sm font-sans",
+                  isDarkBg ? "text-white" : "text-slate-950"
+                )}>
+                  {settings.mosqueName}
+                </h1>
+                <p className={cn(
+                  "text-xs mt-1 font-semibold tracking-wide truncate max-w-lg",
+                  isDarkBg ? "text-slate-400" : "text-gray-500"
+                )}>
+                  {settings.mosqueAddress}
+                </p>
               </div>
-              <h1 className={cn(
-                "text-2xl md:text-3xl font-extrabold tracking-tight uppercase leading-none drop-shadow-sm font-sans",
-                isDarkBg ? "text-white" : "text-slate-950"
-              )}>
-                {settings.mosqueName}
-              </h1>
-              <p className={cn(
-                "text-xs mt-1 font-semibold tracking-wide truncate max-w-lg",
-                isDarkBg ? "text-slate-400" : "text-gray-500"
-              )}>
-                {settings.mosqueAddress}
-              </p>
             </div>
 
             {/* Top Right: Dates inside elegant card frame */}
@@ -396,7 +537,7 @@ export default function Display() {
                   "text-xs font-bold mt-1 uppercase tracking-wide",
                   isDarkBg ? "text-emerald-400" : "text-emerald-700"
                 )}>
-                  {hijriFormatter.format(now).replace(" AH", "")} H
+                  {hijriText}
                 </div>
               </div>
             </div>

@@ -17,6 +17,8 @@ export interface MosqueSettings {
     mediaFullScreen?: boolean;
     bgColor?: string;
     boxColor?: string;
+    logoUrl?: string;
+    bootBgUrl?: string;
   };
   audio: {
     adzanActive: boolean;

@@ -190,11 +190,20 @@ export default function Display() {
     if (activePrayerEvent) return 'schedule';
 
     if (settings.display.mode === 'mixed') {
-      const pattern = settings.display.mixedPattern || [
+      const basePattern = settings.display.mixedPattern || [
         { type: 'schedule', duration: 15 },
         { type: 'slide', duration: 10 },
         { type: 'video', duration: 20 }
       ];
+      
+      // Filter out types that do not have content to prevent showing empty states
+      const pattern = basePattern.filter(p => {
+        if (p.type === 'slide' && (!settings.slides || settings.slides.length === 0)) return false;
+        if (p.type === 'video' && (!settings.videos || settings.videos.length === 0)) return false;
+        return true;
+      });
+
+      if (pattern.length === 0) return 'schedule';
       return pattern[mixedIndex % pattern.length].type;
     }
     return settings.display.mode;
@@ -203,10 +212,27 @@ export default function Display() {
   // Auto Rotation slide timers
   useEffect(() => {
     if (settings?.display?.mode === 'mixed' && !activePrayerEvent) {
-      const timer = setTimeout(() => {
-        setMixedIndex(prev => prev + 1);
-      }, (settings.display.slideDuration || 10) * 1000);
-      return () => clearTimeout(timer);
+      const basePattern = settings.display.mixedPattern || [
+        { type: 'schedule', duration: 15 },
+        { type: 'slide', duration: 10 },
+        { type: 'video', duration: 20 }
+      ];
+
+      const pattern = basePattern.filter(p => {
+        if (p.type === 'slide' && (!settings.slides || settings.slides.length === 0)) return false;
+        if (p.type === 'video' && (!settings.videos || settings.videos.length === 0)) return false;
+        return true;
+      });
+
+      if (pattern.length > 0) {
+        const currentStep = pattern[mixedIndex % pattern.length];
+        const stepDuration = currentStep ? currentStep.duration : 10;
+
+        const timer = setTimeout(() => {
+          setMixedIndex(prev => prev + 1);
+        }, stepDuration * 1000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [settings, mixedIndex, activePrayerEvent]);
 

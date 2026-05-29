@@ -8,6 +8,9 @@ export default function AdminMedia() {
   const { settings, updateSettings } = useSettings();
   const [mode, setMode] = useState<any>("mixed");
   const [slideDuration, setSlideDuration] = useState(10);
+  const [scheduleDuration, setScheduleDuration] = useState(15);
+  const [mixedSlideDuration, setMixedSlideDuration] = useState(10);
+  const [mixedVideoDuration, setMixedVideoDuration] = useState(20);
   const [slides, setSlides] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [leftBgImage, setLeftBgImage] = useState("");
@@ -27,6 +30,15 @@ export default function AdminMedia() {
       setMediaFullScreen(!!settings.display.mediaFullScreen);
       setBgColor(settings.display.bgColor || "#f3f4f6");
       setBoxColor(settings.display.boxColor || "#ffffff");
+
+      // Load durations from active mixedPattern
+      const pattern = settings.display.mixedPattern || [];
+      const sched = pattern.find(p => p.type === 'schedule');
+      const sld = pattern.find(p => p.type === 'slide');
+      const vid = pattern.find(p => p.type === 'video');
+      if (sched) setScheduleDuration(sched.duration);
+      if (sld) setMixedSlideDuration(sld.duration);
+      if (vid) setMixedVideoDuration(vid.duration);
     }
   }, [settings]);
 
@@ -34,6 +46,12 @@ export default function AdminMedia() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const updatedPattern = [
+      { type: 'schedule' as const, duration: scheduleDuration },
+      { type: 'slide' as const, duration: mixedSlideDuration },
+      { type: 'video' as const, duration: mixedVideoDuration }
+    ];
+
     updateSettings({
       display: {
         ...settings.display,
@@ -43,6 +61,7 @@ export default function AdminMedia() {
         mediaFullScreen,
         bgColor,
         boxColor,
+        mixedPattern: updatedPattern
       },
       slides,
       videos,
@@ -202,11 +221,66 @@ export default function AdminMedia() {
               ))}
             </div>
 
-            {mode !== 'schedule' && (
+            {mode === 'mixed' && (
+              <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                <h4 className="text-sm font-bold text-gray-800 uppercase tracking-wider mb-2">⏱️ Pengaturan Siklus & Putaran Otomatis (Kembali Ke Awal)</h4>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">1. Durasi Jadwal Utama (Kembali Ke Awal)</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        value={scheduleDuration}
+                        onChange={(e) => setScheduleDuration(Number(e.target.value))}
+                      />
+                      <span className="text-xs text-gray-500 shrink-0">Detik</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">2. Durasi Foto Slide (Layar Penuh)</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        value={mixedSlideDuration}
+                        onChange={(e) => setMixedSlideDuration(Number(e.target.value))}
+                      />
+                      <span className="text-xs text-gray-500 shrink-0">Detik</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">3. Durasi Video Kajian (Layar Penuh)</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm"
+                        value={mixedVideoDuration}
+                        onChange={(e) => setMixedVideoDuration(Number(e.target.value))}
+                      />
+                      <span className="text-xs text-gray-500 shrink-0">Detik</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p className="text-[10px] text-gray-400 italic">
+                  * Layar TV akan memutar Jadwal Utama selama {scheduleDuration} detik, beralih ke Foto slide selama {mixedSlideDuration} detik, lalu Video selama {mixedVideoDuration} detik, kemudian kembali lagi ke awal secara berulang!
+                </p>
+              </div>
+            )}
+
+            {mode === 'slide' && (
               <div className="mt-4 pt-4 border-t border-gray-100">
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">Durasi Pergantian Slide (Detik)</label>
                 <input
                   type="number"
+                  min="1"
                   className="w-full sm:w-1/3 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                   value={slideDuration}
                   onChange={(e) => setSlideDuration(Number(e.target.value))}

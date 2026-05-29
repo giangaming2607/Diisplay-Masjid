@@ -1,6 +1,6 @@
 import React from "react";
 import { useSettings } from "../../lib/SettingsContext";
-import { Palette, Check, Sparkles, AlertCircle } from "lucide-react";
+import { Palette, Check, Sparkles, AlertCircle, LayoutGrid, Tv2 } from "lucide-react";
 
 interface DesignPreset {
   id: string;
@@ -83,6 +83,40 @@ const THEME_PRESETS: DesignPreset[] = [
   }
 ];
 
+interface LayoutTemplatePreset {
+  id: string;
+  name: string;
+  description: string;
+  badge: string;
+}
+
+const LAYOUT_PRESETS: LayoutTemplatePreset[] = [
+  {
+    id: "classic",
+    name: "Classic Split (Jadwal Kiri, Slide Kanan)",
+    description: "Tata letak seimbang paling populer. Bagian kiri memuat foto masjid & daftar tabel waktu sholat vertikal, bagian kanan mutlak untuk penayangan slide informasi.",
+    badge: "Tata Letak Default"
+  },
+  {
+    id: "sidebar-right",
+    name: "Inverted Split (Slide Kiri, Jadwal Kanan)",
+    description: "Menukar fokus penglihatan dengan menempatkan slide media slideshow besar di sebelah kiri, sedangkan modul tabel jadwal sholat di sisi kanan.",
+    badge: "Moderen Seimbang"
+  },
+  {
+    id: "modern-grid",
+    name: "Bento Grid Dashboard Layout",
+    description: "Desain asimetris bernuansa digital modern. Slide media tampil megah berdampingan dengan kotak jadwal berbentuk grid bento di sampingnya.",
+    badge: "Modern & Kreatif"
+  },
+  {
+    id: "minimal-elegant",
+    name: "Minimalist Fullscreen Video & Overlays",
+    description: "Merubah seluruh layar latar belakang sebagai bingkai pemutaran slide penuh (Fullscreen background), dengan info jam & jadwal diletakkan melayang transparan di atasnya.",
+    badge: "Maksimal Sinematik"
+  }
+];
+
 export default function AdminThemes() {
   const { settings, updateSettings } = useSettings();
 
@@ -91,6 +125,7 @@ export default function AdminThemes() {
   const currentBgColor = settings.display.bgColor || "#f3f4f6";
   const currentBoxColor = settings.display.boxColor || "#ffffff";
   const currentLeftBg = settings.display.leftBgImage || "";
+  const currentLayout = settings.display.layoutTemplate || "classic";
 
   // Helper to determine active theme match
   const getSelectedPresetId = () => {
@@ -114,21 +149,32 @@ export default function AdminThemes() {
     alert(`🎉 Desain "${preset.name}" berhasil diterapkan secara global!`);
   };
 
+  const handleApplyLayout = (layoutId: string) => {
+    updateSettings({
+      display: {
+        ...settings.display,
+        layoutTemplate: layoutId
+      }
+    });
+    alert(`📐 Tata Letak Tampilan berhasil diubah menjadi "${layoutId.toUpperCase()}"!`);
+  };
+
   const activePresetId = getSelectedPresetId();
 
   return (
-    <div className="max-w-6xl">
+    <div className="max-w-6xl pb-16">
+      {/* SECTION 1: COLOR THEME PRESETS */}
       <div className="flex items-center gap-3 mb-2">
         <div className="bg-blue-100 p-2.5 rounded-lg text-blue-700">
           <Palette className="w-6 h-6" />
         </div>
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 font-sans">Ubah Desain Tampilan</h2>
+          <h2 className="text-2xl font-bold text-gray-800 font-sans">1. Pilih Tema Warna Display</h2>
           <p className="text-sm text-gray-500">Pilih dari galeri desain profesional yang kami buatkan khusus untuk Masjid Anda</p>
         </div>
       </div>
 
-      <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 flex gap-3 text-sm mb-8 mt-4">
+      <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-4 flex gap-3 text-sm mb-6 mt-4">
         <Sparkles className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
         <div>
           <span className="font-bold">Tema Otomatis & Cerdas: </span>
@@ -136,7 +182,7 @@ export default function AdminThemes() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
         {THEME_PRESETS.map((preset) => {
           const isActive = activePresetId === preset.id;
           return (
@@ -213,8 +259,175 @@ export default function AdminThemes() {
         })}
       </div>
 
+      {/* SECTION 2: DYNAMIC LAYOUT TEMPLATE SELECTOR */}
+      <div className="flex items-center gap-3 mb-2 border-t border-gray-100 pt-8">
+        <div className="bg-emerald-100 p-2.5 rounded-lg text-emerald-700">
+          <LayoutGrid className="w-6 h-6" />
+        </div>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 font-sans">2. Ubah Tata Letak Posisi Display</h2>
+          <p className="text-sm text-gray-500">Sesuaikan penempatan posisi slide dokumentasi, table jadwal sholat, info jam, dan banner digital masjid</p>
+        </div>
+      </div>
+
+      <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 rounded-xl p-4 flex gap-3 text-sm mb-6 mt-4">
+        <Tv2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+        <div>
+          <span className="font-bold">Live Preview Miniatur: </span>
+          Silakan perhatikan petunjuk visual skema struktur bento di setiap item sebelum menentukan pilihan terbaik bagi tata letak layar atau Smart-TV masjid Anda.
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {LAYOUT_PRESETS.map((tmpl) => {
+          const isSelected = currentLayout === tmpl.id;
+          return (
+            <div
+              key={tmpl.id}
+              className={`bg-white rounded-2xl shadow-sm border p-5 flex flex-col justify-between transition-all duration-350 ${
+                isSelected
+                  ? "ring-4 ring-emerald-500 border-transparent shadow-md bg-emerald-50/5"
+                  : "border-gray-200/80 hover:border-gray-300 hover:shadow"
+              }`}
+            >
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                  <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                    isSelected ? "bg-emerald-600 text-white" : "bg-gray-100 text-gray-600"
+                  }`}>
+                    {tmpl.badge}
+                  </span>
+                  {isSelected && (
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold px-2 py-0.5 rounded-full flex items-center gap-1 uppercase tracking-wider">
+                      <Check className="w-3 h-3" /> Sangat Aktif
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="font-extrabold text-gray-900 text-base mb-1.5 uppercase font-sans">
+                  {tmpl.name}
+                </h3>
+                <p className="text-xs text-gray-500 leading-relaxed mb-4">
+                  {tmpl.description}
+                </p>
+
+                {/* VISUAL LAYOUT PREVIEW PANEL (Interactive rendered miniature blueprint) */}
+                <div className="border border-gray-200/90 rounded-2xl p-3 bg-gray-50 flex flex-col h-32 w-full justify-between mb-4 shadow-inner relative overflow-hidden select-none">
+                  {/* Miniature header line */}
+                  <div className="flex justify-between items-center bg-zinc-800 text-white h-4 px-2 rounded-md shrink-0">
+                    <div className="flex items-center gap-0.5">
+                      <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-ping shrink-0" />
+                      <span className="text-[6px] text-zinc-400 font-mono">05:14</span>
+                    </div>
+                    <span className="text-[6px] font-black uppercase text-amber-400 max-w-[40%] truncate">BAITURRAHMAN</span>
+                    <span className="text-[5px] text-emerald-400 font-mono">29 Syaf</span>
+                  </div>
+
+                  {/* Miniature Body containers depending on selected template */}
+                  <div className="flex-1 flex gap-1.5 my-1.5 min-h-0">
+                    {tmpl.id === 'classic' && (
+                      <>
+                        {/* Left column: prayer schedules */}
+                        <div className="w-[30%] bg-emerald-700/85 rounded-lg flex flex-col justify-between p-1 shrink-0 animate-fadeIn">
+                          <div className="h-0.5 bg-white/30 rounded w-full" />
+                          <div className="h-0.5 bg-white/35 rounded w-full" />
+                          <div className="h-0.5 bg-white/30 rounded w-full" />
+                          <div className="h-0.5 bg-emerald-400/80 rounded w-full animate-pulse" />
+                          <div className="h-0.5 bg-white/30 rounded w-full" />
+                        </div>
+                        {/* Right column: slides slideshow container */}
+                        <div className="flex-1 bg-sky-950 rounded-lg flex flex-col items-center justify-center p-1 relative text-center">
+                          <div className="w-full h-full bg-cover bg-center rounded opacity-40" style={{ backgroundImage: `url(${currentLeftBg})` }} />
+                          <div className="absolute inset-0 flex items-center justify-center text-[7px] text-white font-extrabold tracking-wide uppercase">MEDIA PREVIEW</div>
+                        </div>
+                      </>
+                    )}
+
+                    {tmpl.id === 'sidebar-right' && (
+                      <>
+                        {/* Left column: slides slideshow container */}
+                        <div className="flex-1 bg-sky-950 rounded-lg flex flex-col items-center justify-center p-1 relative text-center">
+                          <div className="w-full h-full bg-cover bg-center rounded opacity-40" style={{ backgroundImage: `url(${currentLeftBg})` }} />
+                          <div className="absolute inset-x-0 top-0 bottom-0 flex items-center justify-center text-[7px] text-white font-extrabold tracking-wide uppercase">MEDIA PREVIEW</div>
+                        </div>
+                        {/* Right column: prayer schedules */}
+                        <div className="w-[30%] bg-emerald-700/85 rounded-lg flex flex-col justify-between p-1 shrink-0 animate-fadeIn">
+                          <div className="h-0.5 bg-white/30 rounded w-full" />
+                          <div className="h-0.5 bg-white/35 rounded w-full" />
+                          <div className="h-0.5 bg-white/30 rounded w-full" />
+                          <div className="h-0.5 bg-emerald-400/80 rounded w-full animate-pulse" />
+                          <div className="h-0.5 bg-white/30 rounded w-full" />
+                        </div>
+                      </>
+                    )}
+
+                    {tmpl.id === 'modern-grid' && (
+                      <>
+                        {/* Left column: media slides preview */}
+                        <div className="w-[55%] bg-sky-950 rounded-lg flex flex-col items-center justify-center p-1 relative text-center">
+                          <div className="w-full h-full bg-cover bg-center rounded opacity-30" style={{ backgroundImage: `url(${currentLeftBg})` }} />
+                          <div className="absolute inset-0 flex items-center justify-center text-[6px] text-white font-extrabold tracking-wide uppercase">SLIDESHOW</div>
+                        </div>
+                        {/* Right column: grid layout styles */}
+                        <div className="w-[45%] grid grid-cols-2 gap-0.5 bg-emerald-950/20 p-1 rounded-lg shrink-0 overflow-hidden">
+                          <div className="bg-emerald-600 rounded-sm h-full" />
+                          <div className="bg-emerald-600 rounded-sm h-full" />
+                          <div className="bg-emerald-600 rounded-sm h-full" />
+                          <div className="bg-amber-500 rounded-sm h-full animate-pulse" />
+                          <div className="bg-emerald-600 rounded-sm h-full" />
+                          <div className="bg-emerald-600 rounded-sm h-full" />
+                        </div>
+                      </>
+                    )}
+
+                    {tmpl.id === 'minimal-elegant' && (
+                      <div className="w-full bg-sky-950 rounded-lg flex flex-col justify-between p-1.5 relative text-center overflow-hidden">
+                        <div className="absolute inset-0 w-full h-full bg-cover bg-center opacity-30" style={{ backgroundImage: `url(${currentLeftBg})` }} />
+                        <div className="relative z-10 flex justify-between items-center text-[5px] text-white bg-black/40 p-0.5 rounded-sm">
+                          <span>🕌 KABAR UTAMA</span>
+                          <span>HARI INI</span>
+                        </div>
+                        <div className="relative z-10 text-[7px] text-white font-black tracking-widest uppercase">PEMUTARAN FULLSCREEN</div>
+                        {/* Transparent floating indicators */}
+                        <div className="relative z-10 flex gap-0.5 justify-around w-full bg-black/60 p-0.5 rounded-sm">
+                          <div className="w-2 h-1 bg-emerald-500 rounded-sm" />
+                          <div className="w-2 h-1 bg-emerald-500 rounded-sm" />
+                          <div className="w-2 h-1 bg-emerald-500 rounded-sm" />
+                          <div className="w-2 h-1 bg-amber-500 rounded-sm" />
+                          <div className="w-2 h-1 bg-emerald-500 rounded-sm" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Running text footer banner */}
+                  <div className="bg-emerald-600 text-[5px] text-white font-mono px-1 h-3 rounded flex items-center overflow-hidden shrink-0">
+                    <span className="font-extrabold mr-1 border-r border-white/20 pr-1 shrink-0">RODA</span>
+                    <marquee className="text-white/80 shrink-0">Silakan luruskan shaf sholat berjemaah...</marquee>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleApplyLayout(tmpl.id)}
+                className={`w-full py-2.5 rounded-xl font-bold text-xs uppercase transition tracking-wider flex items-center justify-center gap-1.5 ${
+                  isSelected
+                    ? "bg-slate-100 text-slate-700 cursor-default"
+                    : "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                }`}
+                disabled={isSelected}
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+                {isSelected ? "Tata Letak Aktif" : "Pasang Posisi Ini"}
+              </button>
+            </div>
+          );
+        })}
+      </div>
+
       {/* Manual styling fallback indicator */}
-      <div className="mt-8 border-t border-gray-200/80 pt-6 text-center text-xs text-gray-400">
+      <div className="mt-12 border-t border-gray-200/80 pt-6 text-center text-xs text-gray-400">
         Jika Anda ingin menyesuaikan warna secara manual kustom satu per satu, silakan masuk ke menu <span className="font-semibold text-gray-500">Media & Slides</span>.
       </div>
     </div>

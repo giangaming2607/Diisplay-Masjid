@@ -19,6 +19,7 @@ export interface MosqueSettings {
     boxColor?: string;
     logoUrl?: string;
     bootBgUrl?: string;
+    layoutTemplate?: 'classic' | 'modern-grid' | 'sidebar-right' | 'minimal-elegant';
   };
   audio: {
     adzanActive: boolean;

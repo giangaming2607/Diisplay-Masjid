@@ -28,6 +28,7 @@ const DEFAULT_SETTINGS: MosqueSettings = {
     boxColor: "#ffffff",
     logoUrl: "",
     bootBgUrl: "",
+    layoutTemplate: "classic",
   },
   audio: {
     adzanActive: true,

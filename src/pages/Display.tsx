@@ -265,6 +265,7 @@ export default function Display() {
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>("");
   const [resolvedBootBgUrl, setResolvedBootBgUrl] = useState<string>("");
   const [resolvedLogoUrl, setResolvedLogoUrl] = useState<string>("");
+  const [resolvedFullScreenBgUrl, setResolvedFullScreenBgUrl] = useState<string>("");
 
   useEffect(() => {
     let bootBgUrl = settings?.display?.bootBgUrl || "";
@@ -296,6 +297,37 @@ export default function Display() {
       setResolvedBootBgUrl(bootBgUrl);
     }
   }, [settings?.display?.bootBgUrl]);
+
+  useEffect(() => {
+    let fsUrl = settings?.display?.fullScreenBgImage || "";
+    let objectUrl = "";
+
+    if (!fsUrl) {
+      setResolvedFullScreenBgUrl("");
+      return;
+    }
+
+    if (fsUrl.startsWith("local-") || fsUrl.startsWith("fullScreenBg-")) {
+      let isCancelled = false;
+      import("../lib/indexedDB").then(async ({ getLocalFile }) => {
+        try {
+          const blob = await getLocalFile(fsUrl);
+          if (blob && !isCancelled) {
+            objectUrl = URL.createObjectURL(blob);
+            setResolvedFullScreenBgUrl(objectUrl);
+          }
+        } catch (e) {
+          console.error("Failed to load local full screen background:", e);
+        }
+      });
+      return () => {
+        isCancelled = true;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    } else {
+      setResolvedFullScreenBgUrl(fsUrl);
+    }
+  }, [settings?.display?.fullScreenBgImage]);
 
   useEffect(() => {
     let logoUrl = settings?.display?.logoUrl || "";
@@ -639,7 +671,7 @@ export default function Display() {
             "text-sm md:text-base font-extrabold tracking-wide uppercase leading-none",
             isDarkBg ? "text-white" : "text-blue-900"
           )}>
-            {moment(now).format("dddd, DD MMMM")}
+            {moment(now).format("dddd, DD MMMM").replace(/Jum'at/gi, 'Jumat')}
           </div>
           <div className={cn(
             "text-xs font-bold mt-1 uppercase tracking-wide",
@@ -825,8 +857,12 @@ export default function Display() {
 
   return (
     <div 
-      className="h-screen w-screen overflow-hidden font-sans flex flex-col transition-colors duration-1000"
-      style={{ backgroundColor: settings.display.bgColor || "#f3f4f6", color: isDarkBg ? "#f8fafc" : "#1f2937" }}
+      className="h-screen w-screen overflow-hidden font-sans flex flex-col transition-colors duration-1000 bg-cover bg-center"
+      style={{
+        backgroundColor: resolvedFullScreenBgUrl ? "transparent" : (settings.display.bgColor || "#f3f4f6"), 
+        color: isDarkBg ? "#f8fafc" : "#1f2937",
+        backgroundImage: resolvedFullScreenBgUrl ? `url(${resolvedFullScreenBgUrl})` : "none"
+      }}
     >
       
       {/* Sound Overlay Activation Guide (required by current browser standards for audio play) */}
@@ -960,7 +996,7 @@ export default function Display() {
                     {hijriText}
                   </span>
                   <span className="text-[11px] font-extrabold text-slate-500 mt-1 uppercase tracking-wide">
-                    {moment(now).format("dddd, D MMMM YYYY")}
+                    {moment(now).format("dddd, D MMMM YYYY").replace(/Jum'at/gi, 'Jumat')}
                   </span>
                 </div>
               </div>
@@ -1085,7 +1121,7 @@ export default function Display() {
                   {hijriText}
                 </span>
                 <span className="text-xs font-bold mt-1 text-slate-300 uppercase tracking-widest">
-                  {moment(now).format("dddd, D MMMM YYYY")}
+                  {moment(now).format("dddd, D MMMM YYYY").replace(/Jum'at/gi, 'Jumat')}
                 </span>
               </div>
             </header>

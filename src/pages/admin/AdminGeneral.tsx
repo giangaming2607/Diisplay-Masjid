@@ -13,6 +13,7 @@ export default function AdminGeneral() {
     runningTextSpeed: "medium",
     logoUrl: "",
     bootBgUrl: "",
+    fullScreenBgImage: "",
   });
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function AdminGeneral() {
         runningTextSpeed: settings.display.runningTextSpeed,
         logoUrl: settings.display.logoUrl || "",
         bootBgUrl: settings.display.bootBgUrl || "",
+        fullScreenBgImage: settings.display.fullScreenBgImage || "",
       });
     }
   }, [settings]);
@@ -90,6 +92,20 @@ export default function AdminGeneral() {
     }
   };
 
+  const handleFullScreenBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const timestampId = `local-fullScreenBg-${Date.now()}`;
+      await saveLocalFile(timestampId, file);
+      setFormData(prev => ({ ...prev, fullScreenBgImage: timestampId }));
+      alert(`🎉 Foto full screen utama berhasil disimpan dengan kualitas 4K murni!`);
+    } catch (err) {
+      console.error("Full screen bg upload error:", err);
+      alert("Gagal memproses gambar foto full screen.");
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     updateSettings({
@@ -101,6 +117,7 @@ export default function AdminGeneral() {
         runningTextSpeed: formData.runningTextSpeed as any,
         logoUrl: formData.logoUrl,
         bootBgUrl: formData.bootBgUrl,
+        fullScreenBgImage: formData.fullScreenBgImage,
       }
     });
     alert("Pengaturan Berhasil Disimpan & Diterapkan!");
@@ -212,6 +229,40 @@ export default function AdminGeneral() {
                     </button>
                   )}
                   <p className="text-[10px] text-gray-400">Background saat screen TV menyala (JPG/PNG)</p>
+                </div>
+              </div>
+            </div>
+            {/* Uploader 3: Full Screen Background */}
+            <div className="space-y-2 mt-4 pt-4 border-t border-gray-100">
+              <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider">Foto Full Screen (Latar Belakang TV Utama)</label>
+              <p className="text-[10px] text-gray-500 mb-2">Ini akan mengubah warna latar belakang solid menjadi foto custom (berlaku untuk mode Classic/Modern Grid).</p>
+              
+              <div className="flex items-center gap-4">
+                <div className="w-24 h-16 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 relative">
+                  {formData.fullScreenBgImage ? (
+                    <ResolvingImage src={formData.fullScreenBgImage} alt="Full Screen Background Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 bg-gray-100 border-none flex items-center justify-center flex-col text-[8px] text-gray-400 font-bold uppercase p-1 text-center">
+                      <span>Warna Polos</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 space-y-2">
+                  <label className="inline-flex items-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-[11px] py-2 px-3.5 rounded-lg cursor-pointer transition uppercase tracking-wider">
+                    <UploadCloud className="w-4 h-4" /> Unggah Foto Full Screen
+                    <input type="file" className="hidden" accept="image/*" onChange={handleFullScreenBgUpload} />
+                  </label>
+                  {formData.fullScreenBgImage && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, fullScreenBgImage: "" }))}
+                      className="ml-2 inline-flex items-center gap-1.5 text-xs text-red-600 hover:text-red-700 font-semibold py-1.5 px-2.5 rounded-lg border border-red-100 bg-red-50 hover:bg-red-100/50 transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Hapus
+                    </button>
+                  )}
+                  <p className="text-[10px] text-gray-400">Rekomendasi 1920x1080 (Lanskap)</p>
                 </div>
               </div>
             </div>

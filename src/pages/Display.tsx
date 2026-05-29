@@ -231,6 +231,58 @@ export default function Display() {
     }
   }, [now]);
 
+  // Extract Hijri Details for authentic upcoming holidays list (Matches Image 1 & 2 layout badges)
+  const nearestHoliday = useMemo(() => {
+    try {
+      const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic-umalqura', {
+        day: 'numeric', month: 'numeric', year: 'numeric'
+      });
+      const parts = formatter.formatToParts(now);
+      const hDay = parseInt(parts.find(p => p.type === 'day')?.value || "1");
+      const hMonth = parseInt(parts.find(p => p.type === 'month')?.value || "2");
+      const hYear = parseInt(parts.find(p => p.type === 'year')?.value || "1445");
+
+      const getHijriDayOfYear = (m: number, d: number) => {
+        let days = 0;
+        for (let i = 1; i < m; i++) {
+          days += (i % 2 === 1) ? 30 : 29;
+        }
+        return days + d;
+      };
+
+      const currentDayOfYear = getHijriDayOfYear(hMonth, hDay);
+
+      const holidayTargets = [
+        { name: "Tahun Baru Islam", m: 1, d: 1 },
+        { name: "Maulid Nabi Muhammad SAW", m: 3, d: 12 },
+        { name: "Isra Mi'raj", m: 7, d: 27 },
+        { name: "1 Ramadhan", m: 9, d: 1 },
+        { name: "Idul Fitri", m: 10, d: 1 },
+        { name: "Idul Adha", m: 12, d: 10 },
+      ];
+
+      const calculated = holidayTargets.map(h => {
+        const targetDay = getHijriDayOfYear(h.m, h.d);
+        let daysDiff = 0;
+        let targetYear = hYear;
+
+        if (targetDay >= currentDayOfYear) {
+          daysDiff = targetDay - currentDayOfYear;
+        } else {
+          daysDiff = (354 - currentDayOfYear) + targetDay;
+          targetYear = hYear + 1;
+        }
+        return { name: h.name, daysRemaining: daysDiff, year: targetYear };
+      });
+
+      // Sort and pick closest
+      calculated.sort((a, b) => a.daysRemaining - b.daysRemaining);
+      return calculated[0];
+    } catch (e) {
+      return { name: "1 Ramadhan - Awal Puasa", daysRemaining: 11, year: 1445 };
+    }
+  }, [now]);
+
   // Calculate formatted prayer countdown string
   const countdownText = (() => {
     if (!nextPrayer) return "";
@@ -450,51 +502,56 @@ export default function Display() {
     </header>
   );
 
-  // HELPER 2: RENDER PRAYER TIME TILES COLUMN
+  // HELPER 2: RENDER PRAYER TIME TILES COLUMN (Styled beautifully according to Image 2)
   const renderPrayerColumn = (widthClass: string = "w-1/3") => (
     <div 
-      className={cn("flex flex-col rounded-2xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-500", widthClass)}
-      style={{ backgroundColor: settings.display.boxColor || "#ffffff" }}
+      className={cn("flex flex-col h-full rounded-3xl shadow-2xl border border-gray-200 bg-white/95 overflow-hidden transition-all duration-500", widthClass)}
     >
-      {/* Mosque Image (Top half of left col) */}
-      <div className="flex-1 relative bg-gray-200 overflow-hidden max-h-[35%]">
-        <img 
-          src={settings.display.leftBgImage || "https://images.unsplash.com/photo-1564683214964-b31c0ee611fc?q=80&w=2070&auto=format&fit=crop"} 
-          alt="Mosque Main" 
-          className="absolute inset-0 w-full h-full object-cover select-none"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex items-end">
-          <div className="p-4 w-full">
-            <span className="text-yellow-400 text-[10px] font-bold tracking-widest pl-0.5 uppercase">Menuju Waktu Sholat</span>
-            {nextPrayer && (
-              <div className="text-white text-2xl font-extrabold flex justify-between items-center w-full mt-1">
-                <span className="tracking-wide uppercase text-sm font-sans">{nextPrayer.name}</span>
-                <span className="font-mono text-emerald-300 tracking-tight text-xl">{countdownText}</span>
-              </div>
-            )}
-          </div>
-        </div>
+      {/* Sidebar Header showing location & small digital status */}
+      <div className="bg-slate-900 text-white py-4 px-6 border-b border-slate-800 text-center flex flex-col gap-1 shrink-0">
+        <span className="text-xs text-emerald-400 font-black tracking-widest uppercase">JADWAL SHOLAT DIGITAL</span>
+        <span className="text-sm text-slate-300 font-bold uppercase">{settings?.location?.city || "Kota Bandung"}</span>
       </div>
 
-      {/* Prayer Time Blocks */}
-      <div className="p-4 grid grid-cols-1 gap-1.5 flex-1 justify-center animate-fadeIn">
+      {/* 7 Vertical rows stretching to fill space evenly with clean spacing and borders */}
+      <div className="flex-1 flex flex-col justify-between p-4 gap-2.5 bg-gray-50/50 select-none">
         {prayerTimesInfo?.map((pt) => {
           const isNext = nextPrayer?.id === pt.id;
-          
           return (
             <div 
               key={pt.id} 
               className={cn(
-                "flex justify-between items-center px-5 py-2 rounded-xl shadow-sm text-white font-bold transition-all duration-500 relative overflow-hidden",
-                pt.color,
-                isNext ? "ring-4 ring-emerald-500 ring-offset-white scale-[1.02] shadow-xl z-10 animate-pulse" : "opacity-95"
+                "flex-1 flex flex-col justify-center px-6 rounded-2xl transition-all duration-300 relative border shadow-sm overflow-hidden",
+                isNext 
+                  ? "bg-[#f1c40f] border-yellow-400 text-slate-950 font-bold scale-[1.015] shadow-lg z-10" 
+                  : "bg-white border-gray-150 text-slate-800 hover:border-gray-250"
               )}
             >
               {isNext && (
                 <div className="absolute inset-0 bg-white/10 animate-pulse pointer-events-none" />
               )}
-              <span className="text-xs md:text-sm tracking-wider uppercase drop-shadow-sm font-sans">{pt.name}</span>
-              <span className="text-base md:text-lg font-mono tracking-tight drop-shadow-sm">{moment(pt.time).format("HH:mm")}</span>
+              
+              <div className="flex justify-between items-center w-full">
+                <span className={cn(
+                  "text-sm font-black tracking-wider uppercase font-sans",
+                  isNext ? "text-slate-950" : "text-slate-600"
+                )}>
+                  {pt.name}
+                </span>
+                <span className={cn(
+                  "text-2xl font-black font-mono tracking-tight",
+                  isNext ? "text-slate-950" : "text-slate-900"
+                )}>
+                  {moment(pt.time).format("HH:mm")}
+                </span>
+              </div>
+
+              {/* Centered blinking countdown inside the active column row */}
+              {isNext && (
+                <div className="text-center w-full mt-1.5 border-t border-slate-950/15 pt-1 text-[11px] font-mono font-black text-red-750 tracking-wider uppercase animate-pulse">
+                  Mundur: -{countdownText}
+                </div>
+              )}
             </div>
           );
         })}
@@ -614,15 +671,15 @@ export default function Display() {
       {!soundEnabled && (
         <button 
           onClick={() => setSoundEnabled(true)}
-          className="absolute top-2 left-2 z-[99] flex items-center gap-1 bg-red-600/95 hover:bg-emerald-600 border border-white text-white text-[10px] uppercase font-bold px-2.5 py-1 rounded-full shadow-lg transition animate-bounce"
+          className="absolute top-[18%] left-6 z-[99] flex items-center gap-2 bg-red-650/95 hover:bg-emerald-600 border border-white/20 text-white text-xs uppercase font-extrabold px-4 py-2 rounded-full shadow-2.5xl transition-all duration-350 transform active:scale-95 animate-bounce"
         >
-          <VolumeX className="w-3.5 h-3.5" /> Klik Untuk Suara Adzan
+          <VolumeX className="w-4 h-4" /> Klik Untuk Suara Adzan
         </button>
       )}
 
       {soundEnabled && (
-        <div className="absolute top-2 left-2 z-[99] flex items-center gap-1 bg-emerald-600/90 text-white text-[9px] font-mono font-bold px-2 py-0.5 rounded-full">
-          <Volume2 className="w-3 h-3 animate-pulse" /> AUDIO AKTIF
+        <div className="absolute top-[18%] left-6 z-[99] flex items-center gap-1.5 bg-emerald-600/90 text-white text-[10px] font-mono font-black px-3 py-1 rounded-full shadow-md">
+          <Volume2 className="w-3.5 h-3.5 animate-pulse" /> AUDIO AKTIF
         </div>
       )}
 
@@ -701,132 +758,259 @@ export default function Display() {
 
       {/* RENDER SELECTED DESIGN TEMPLATE PATTERNS */}
       {layoutTemplate === 'minimal-elegant' ? (
-        // RENDER MINIMAL ELEGANT FULLSCREEN WITH OVERLAY LAYOUT
+        // RENDER PREMIUM FULLSCREEN OVERLAY (IMAGE 1 STYLE)
         <div className="relative w-full h-full flex flex-col justify-between overflow-hidden">
-          {/* Main big display block behind everything */}
+          {/* Background is full-screen slide slideshow */}
           <div className="absolute inset-0 z-0 select-none">
             {renderMediaReceptacle("w-full h-full")}
           </div>
 
           {!isWideScreen && (
             <>
-              {/* Semi-transparent Header Overlay */}
-              <div className="relative z-10 w-full bg-slate-950/75 backdrop-blur-md border-b border-white/10 p-4 px-8 flex justify-between items-center text-white">
-                <div className="flex items-center gap-4">
-                  {settings.display.logoUrl && (
-                    <img src={settings.display.logoUrl} alt="Logo" className="w-12 h-12 object-contain rounded-xl bg-white/15 p-1" />
-                  )}
-                  <div>
-                    <h1 className="text-2xl font-black uppercase tracking-wider text-amber-400 leading-none">{settings.mosqueName}</h1>
-                    <p className="text-[11px] text-slate-350 font-bold mt-1 tracking-wide">{settings.mosqueAddress}</p>
-                  </div>
+              {/* Premium Floating Header Row */}
+              <div className="relative z-10 w-full p-6 px-10 flex justify-between items-center text-slate-800">
+                {/* Left Card: Large rounded clock block (07:48 concept) */}
+                <div className="bg-white/85 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 px-8 py-3.5 flex items-center justify-center min-w-[185px]">
+                  <span className="text-5xl font-black font-mono tracking-tight text-slate-900">
+                    {moment(now).format("HH:mm")}
+                  </span>
                 </div>
 
-                {/* Date Display */}
-                <div className="text-right">
-                  <span className="text-[10px] bg-emerald-600 px-3 py-1 rounded-full text-white font-extrabold tracking-wider uppercase font-sans">{hijriText}</span>
-                  <p className="text-base font-black leading-none mt-2 uppercase tracking-wide">{moment(now).format("dddd, DD MMMM YYYY")}</p>
+                {/* Vertical gold pillar divider */}
+                <div className="hidden md:block h-10 w-[2px] bg-gradient-to-b from-amber-400 via-yellow-500 to-amber-600 mx-5 opacity-80" />
+
+                {/* Center: Mosque info */}
+                <div className="flex-1 flex flex-col items-center text-center">
+                  <h1 className="text-3xl font-black tracking-wide text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)] leading-none uppercase font-sans">
+                    {settings.mosqueName}
+                  </h1>
+                  <p className="text-sm font-bold text-yellow-300 drop-shadow-[0_1px_4.5px_rgba(0,0,0,0.85)] mt-1.5 uppercase tracking-widest">
+                    {settings?.location?.city || "Kota Bandung"}
+                  </p>
+                </div>
+
+                {/* Vertical gold pillar divider */}
+                <div className="hidden md:block h-10 w-[2px] bg-gradient-to-b from-amber-400 via-yellow-500 to-amber-600 mx-5 opacity-80" />
+
+                {/* Right Card: Hijri & Gregorian date block divided nicely */}
+                <div className="bg-white/85 backdrop-blur-md rounded-2xl shadow-lg border border-white/20 px-8 py-3 flex flex-col items-center justify-center text-center min-w-[220px]">
+                  <span className="text-sm font-black text-slate-900 tracking-wide uppercase">
+                    {hijriText}
+                  </span>
+                  <span className="text-[11px] font-extrabold text-slate-500 mt-1 uppercase tracking-wide">
+                    {moment(now).format("dddd, D MMMM YYYY")}
+                  </span>
                 </div>
               </div>
 
-              {/* Floating Glassmorphic Footer Widget Panel */}
-              <div className="absolute bottom-[13%] left-6 right-6 z-20 bg-slate-950/85 backdrop-blur-xl border border-white/10 rounded-3xl p-4 flex gap-6 items-center shadow-2xl">
-                {/* Floating Jam box */}
-                <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-3.5 px-6 rounded-2xl flex flex-col justify-center shrink-0 border border-emerald-500/30">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-250">WAKTU AKTIF ({settings?.location?.timezone || "WIB"})</span>
-                  <div className="text-4xl font-extrabold font-mono tracking-tight leading-none mt-1.5 flex items-baseline">
-                    {moment(now).format("HH:mm")}
-                    <span className="text-lg font-bold text-emerald-250 ml-1.5 animate-pulse">{moment(now).format("ss")}</span>
-                  </div>
-                </div>
+              {/* Floating Overlays in the slide view container */}
+              <div className="absolute inset-x-8 top-[24%] z-20 flex justify-between items-start pointer-events-none">
+                {/* Clickable speaker "Mode Muadzin" capsule */}
+                <button
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  className={cn(
+                    "pointer-events-auto flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-black uppercase shadow-2xl border transition-all duration-300 transform active:scale-95",
+                    soundEnabled 
+                      ? "bg-emerald-600/90 hover:bg-emerald-700 border-emerald-400 text-white animate-pulse"
+                      : "bg-slate-900/80 hover:bg-slate-850 border-slate-705 text-slate-200"
+                  )}
+                >
+                  <Volume2 className={cn("w-4 h-4", soundEnabled && "animate-bounce")} />
+                  <span>Mode Muadzin: {soundEnabled ? "AKTIF" : "SENYAP"}</span>
+                </button>
 
-                {/* Horizontal row of Prayer times */}
-                <div className="flex-1 grid grid-cols-7 gap-3">
-                  {prayerTimesInfo?.map((pt) => {
-                    const isNext = nextPrayer?.id === pt.id;
-                    return (
+                {/* Red warning/notice banner representing nearest holiday countdown */}
+                {nearestHoliday && (
+                  <div className="bg-red-650/95 border border-red-500/30 text-white rounded-full font-black text-xs uppercase px-5 py-2.5 shadow-2xl flex items-center gap-1.5 animate-pulse">
+                    <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                    <span>{nearestHoliday.name} -{nearestHoliday.daysRemaining} Hari</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Gears Settings trigger block at center right */}
+              <div className="absolute right-8 top-[40%] z-20 pointer-events-auto">
+                <a 
+                  href="/admin/themes" 
+                  className="w-10 h-10 bg-white/80 backdrop-blur-md border border-white/20 rounded-xl shadow-lg flex items-center justify-center text-slate-700 hover:text-emerald-600 transition-all hover:scale-110 active:scale-95"
+                  title="Ubah Desain"
+                >
+                  <svg className="w-5 h-5 animate-spin" style={{ animationDuration: '8s' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.542.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </a>
+              </div>
+
+              {/* Glassmorphic bottom grid */}
+              <div className="absolute bottom-[13%] left-8 right-8 z-20 bg-white/70 backdrop-blur-md border border-white/20 rounded-3xl p-1.5 flex shadow-2xl items-center h-28 overflow-hidden">
+                {prayerTimesInfo?.map((pt, index) => {
+                  const isNext = nextPrayer?.id === pt.id;
+                  return (
+                    <div key={pt.id} className="flex-1 flex items-center h-full min-w-0">
+                      {/* Gold vertical ornament partition divider */}
+                      {index > 0 && !isNext && nextPrayer?.id !== prayerTimesInfo[index - 1]?.id && (
+                        <div className="flex flex-col items-center gap-1 opacity-50 px-1 shrink-0">
+                          <div className="w-[1.5px] h-3.5 bg-gradient-to-b from-amber-400 to-amber-600 rounded" />
+                          <div className="w-[3px] h-[3px] bg-amber-500 rounded-full" />
+                          <div className="w-[1.5px] h-3.5 bg-gradient-to-b from-amber-400 to-amber-600 rounded" />
+                        </div>
+                      )}
+
+                      {/* Prayer Card */}
                       <div 
-                        key={pt.id} 
                         className={cn(
-                          "rounded-2xl p-2.5 flex flex-col items-center justify-center text-center transition-all border shadow-md relative overflow-hidden",
+                          "flex-1 h-full rounded-2xl flex flex-col items-center justify-center p-2 text-center transition-all duration-300 overflow-hidden relative",
                           isNext 
-                            ? "bg-amber-500 border-amber-300 text-slate-950 scale-[1.04] shadow-xl font-extrabold" 
-                            : "bg-white/5 border-white/5 text-slate-100"
+                            ? "bg-[#e67e22] text-white scale-[1.03] shadow-md z-10 font-bold border border-orange-400" 
+                            : "text-slate-800"
                         )}
                       >
-                        {isNext && <span className="absolute top-0 left-0 right-0 h-[3px] bg-amber-250 animate-pulse" />}
-                        <span className="text-[10px] tracking-widest uppercase opacity-85 font-sans shrink-0">{pt.name}</span>
-                        <span className="text-base font-mono font-black tracking-tight leading-none mt-1.5 shrink-0">{moment(pt.time).format("HH:mm")}</span>
+                        {isNext && (
+                          <div className="absolute inset-0 bg-gradient-to-b from-amber-500 to-orange-600 opacity-95 pointer-events-none -z-10" />
+                        )}
+                        {isNext && (
+                          <div className="absolute inset-0 bg-white/5 animate-pulse pointer-events-none" />
+                        )}
+                        
+                        <span className={cn(
+                          "text-[11px] font-black tracking-widest uppercase mb-1 font-sans",
+                          isNext ? "text-yellow-105" : "text-slate-500"
+                        )}>
+                          {pt.name}
+                        </span>
+                        <span className={cn(
+                          "text-2xl font-black font-mono tracking-tighter leading-none block",
+                          isNext ? "text-white" : "text-slate-900"
+                        )}>
+                          {moment(pt.time).format("HH:mm")}
+                        </span>
+
+                        {/* Active Countdown below timing */}
+                        {isNext && (
+                          <span className="text-[10px] font-mono font-black tracking-tight text-yellow-250 mt-1 block">
+                            -{countdownText}
+                          </span>
+                        )}
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Floating Margined Marquee Text */}
+              {/* Running text footer banner */}
               {renderMarqueeFooter("absolute bottom-0 left-0 right-0 z-10")}
             </>
           )}
         </div>
       ) : layoutTemplate === 'modern-grid' ? (
-        // RENDER MODERN GRID LAYOUT (BENTO: LEFT SLIDE LARGE, RIGHT CONTAINER GRID)
-        <div className="h-full w-full flex flex-col">
-          {!isWideScreen && renderHeader()}
-          
-          <main className={cn(
-            "flex-1 flex gap-6 p-6 transition-all duration-700",
-            isWideScreen ? "h-screen p-0 m-0 gap-0 overflow-hidden" : "h-[75%]"
-          )}>
-            {/* Left Portion: Slide visual takes precedence (58% width) */}
-            {renderMediaReceptacle("w-[58%]")}
-
-            {/* Right Portion: Bento elements grid (42% width) */}
-            {!isWideScreen && (
-              <div className="w-[42%] flex flex-col gap-4">
-                {/* Visual Widget banner holding NEXT call */}
-                {nextPrayer && (
-                  <div className="bg-gradient-to-r from-slate-900 to-indigo-950 border border-slate-800 p-4 px-6 rounded-2xl shadow-xl text-white flex justify-between items-center shrink-0">
-                    <div>
-                      <span className="text-[9px] text-indigo-300 font-extrabold uppercase tracking-widest leading-none">WAKTU TUNGGU</span>
-                      <h3 className="text-xl font-black uppercase text-amber-400 mt-1">{nextPrayer.name}</h3>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-xs font-mono bg-emerald-600/20 text-emerald-300 border border-emerald-500/10 px-3 py-1 rounded-full font-bold">{countdownText}</span>
-                      <p className="text-xl font-mono text-white font-extrabold mt-1.5 leading-none">{moment(nextPrayer.time).format("HH:mm")}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Inlaid visual representation grid of Prayer Times */}
-                <div 
-                  className="flex-1 rounded-3xl p-4 border shadow-md grid grid-cols-2 gap-2.5"
-                  style={{ backgroundColor: settings.display.boxColor || "#ffffff" }}
-                >
-                  {prayerTimesInfo?.map((pt) => {
-                    const isNext = nextPrayer?.id === pt.id;
-                    return (
-                      <div 
-                        key={pt.id} 
-                        className={cn(
-                          "rounded-xl p-3 px-4 flex flex-col justify-between shadow-xs relative overflow-hidden text-white font-bold transition-transform duration-300",
-                          pt.color,
-                          isNext ? "ring-4 ring-emerald-500 ring-offset-white scale-[1.01] col-span-2 shadow-lg z-10 animate-fadeIn" : "opacity-95"
-                        )}
-                      >
-                        <span className="text-[11px] tracking-wider uppercase font-sans">{pt.name}</span>
-                        <div className="flex justify-between items-baseline mt-4">
-                          <span className="text-xl md:text-2xl font-mono leading-none tracking-tight">{moment(pt.time).format("HH:mm")}</span>
-                          {isNext && <span className="text-[9px] bg-white/25 px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider animate-pulse">BERIKUTNYA</span>}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+        // RENDER TRIPLE HIGH-CONTRAST SOLID HEADER & RAINBOW BOTTOM PANEL (IMAGE 3 STYLE)
+        <div className="h-full w-full flex flex-col bg-slate-950 overflow-hidden text-white justify-between">
+          {!isWideScreen && (
+            <header className="h-[15%] w-full flex items-center justify-between text-white border-b border-white/5 select-none shrink-0 overflow-hidden">
+              {/* Left: Clock panel with deep magenta solid backdrop */}
+              <div className="w-[25%] h-full bg-[#c2185b] flex flex-col items-center justify-center text-center font-mono py-2 shrink-0 border-r border-white/5 shadow-inner">
+                <span className="text-4xl font-extrabold tracking-normal flex items-center leading-none">
+                  {moment(now).format("HH:mm")}
+                  <span className="text-xl text-pink-300 font-bold tracking-wider ml-1 animate-pulse">
+                    {moment(now).format("ss")}
+                  </span>
+                </span>
+                <span className="text-[9px] font-bold tracking-widest text-pink-100 uppercase mt-1">WAKTU AKTIF - {settings?.location?.timezone || "WIB"}</span>
               </div>
-            )}
+
+              {/* Center: Mosque info with deep emerald background */}
+              <div className="flex-1 h-full bg-[#15803d] flex flex-col items-center justify-center text-center px-4 overflow-hidden border-r border-white/5">
+                <h1 className="text-2xl font-black uppercase tracking-wider leading-none font-sans text-white drop-shadow">
+                  {settings.mosqueName}
+                </h1>
+                <p className="text-xs font-semibold text-emerald-100/90 tracking-wide mt-1.5 truncate max-w-lg uppercase">
+                  {settings.mosqueAddress}
+                </p>
+              </div>
+
+              {/* Right: Hijri/Gregorian date inside deep cobalt blue container */}
+              <div className="w-[28%] h-full bg-[#1e3a8a] flex flex-col items-center justify-center text-center px-5 py-2 shrink-0 shadow-inner">
+                <span className="text-sm font-black text-blue-100 tracking-wider uppercase leading-none">
+                  {hijriText}
+                </span>
+                <span className="text-xs font-bold mt-1 text-slate-300 uppercase tracking-widest">
+                  {moment(now).format("dddd, D MMMM YYYY")}
+                </span>
+              </div>
+            </header>
+          )}
+
+          {/* Center portion of screen: slideshow frame */}
+          <main className={cn(
+            "flex-1 relative overflow-hidden transition-all duration-700",
+            isWideScreen ? "h-screen w-screen" : "h-[62%]"
+          )}>
+            {renderMediaReceptacle("w-full h-full")}
           </main>
 
-          {!isWideScreen && renderMarqueeFooter()}
+          {/* Bottom colorful horizontal items grid spanning everything */}
+          {!isWideScreen && (
+            <div className="h-[15%] bg-slate-900 grid grid-cols-7 gap-0.5 border-t border-white/10 shrink-0 overflow-hidden">
+              {prayerTimesInfo?.map((pt, idx) => {
+                const isNext = nextPrayer?.id === pt.id;
+                
+                // Color assignments to form the authentic Image 3 look:
+                const colors = [
+                  "bg-[#0d9488]", // Imsak (Indigo Teal)
+                  "bg-[#059669]", // Shubuh (Dark Green)
+                  "bg-[#2563eb]", // Syuruq (Ocean Blue)
+                  "bg-[#ea580c]", // Dzuhur (Ginger Orange)
+                  "bg-[#c2185b]", // Ashar (Crimson Violet)
+                  "bg-[#b91c1c]", // Maghrib (Deep Red)
+                  "bg-[#4f46e5]"  // Isya (Royal Blue)
+                ];
+                const blockColor = colors[idx] || "bg-slate-700";
+
+                return (
+                  <div 
+                    key={pt.id} 
+                    className={cn(
+                      "h-full flex flex-col justify-center items-center text-center px-2 py-3 transition-all duration-300 border border-white/5 relative",
+                      blockColor,
+                      isNext ? "ring-4 ring-yellow-400 shadow-2xl z-20 scale-[1.015]" : "opacity-95"
+                    )}
+                  >
+                    {isNext && <span className="absolute top-0 inset-x-0 h-[4px] bg-yellow-400 animate-pulse" />}
+                    
+                    <span className="text-[11px] font-black text-white/90 tracking-widest uppercase mb-1 font-sans">
+                      {pt.name}
+                    </span>
+                    <span className="text-2xl font-black font-mono tracking-tighter leading-none text-white">
+                      {moment(pt.time).format("HH:mm")}
+                    </span>
+
+                    {/* Centered blinking countdown indicator */}
+                    {isNext && (
+                      <span className="text-[10px] font-mono font-black tracking-normal text-yellow-250 mt-1 animate-pulse">
+                        -{countdownText}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Red background running text marquee for Image 3 layout */}
+          {!isWideScreen && (
+            <footer className="h-9 bg-red-700 border-t border-red-800 flex items-center overflow-hidden shrink-0 shadow-lg text-white font-bold select-none px-6">
+              <span className="bg-white text-red-700 font-black text-xs px-3 py-1.5 rounded-md shadow uppercase tracking-wider shrink-0 mr-4">INFO MASJID</span>
+              <div className="flex-1 overflow-hidden flex items-center">
+                <marquee 
+                  className="text-white font-extrabold text-lg tracking-wide shrink-0"
+                  scrollamount={settings.display.runningTextSpeed === 'slow' ? "3" : settings.display.runningTextSpeed === 'fast' ? "12" : "6"}
+                >
+                  {settings.display.runningText || "Mari rapatkan dan luruskan barisan demi kesempurnaan sholat berjemaah."}
+                </marquee>
+              </div>
+            </footer>
+          )}
         </div>
       ) : layoutTemplate === 'sidebar-right' ? (
         // RENDER INVERTED SPLIT LAYOUT (LEFT SLIDE, RIGHT COL PRAYER TIMES)

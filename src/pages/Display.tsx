@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSettings } from "../lib/SettingsContext";
-import { getPrayerTimes, cn } from "../lib/utils";
+import { getPrayerTimes, cn, getNextIslamicEvent } from "../lib/utils";
 import moment from "moment";
+import "moment/locale/id";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, ShieldAlert, Settings, Info } from "lucide-react";
 import ResolvingImage from "../components/ResolvingImage";
@@ -117,6 +118,11 @@ export default function Display() {
     if (!prayerTimesInfo) return null;
     return prayerTimesInfo.find(p => p.time > localMosqueTime) || prayerTimesInfo[0];
   }, [prayerTimesInfo, localMosqueTime]);
+
+  // Find next Kemenag event
+  const nextIslamicEvent = useMemo(() => {
+    return getNextIslamicEvent(now);
+  }, [now.toDateString()]);
 
   // Determine priority states: Adzan, Iqomah, and Sholat (Quiet Screen)
   const activePrayerEvent = useMemo(() => {
@@ -1215,6 +1221,82 @@ export default function Display() {
           </main>
 
           {!isWideScreen && renderMarqueeFooter()}
+        </div>
+      ) : layoutTemplate === 'boxed-bottom-schedule' ? (
+        // RENDER DIGITAL CLOCK TOP RIGHT, MEDIA OVER MIDDLE, HORIZONTAL PRAYER TIMES BOTTOM
+        <div className="h-full w-full flex flex-col p-6 gap-6 relative z-10">
+          {!isWideScreen && (
+            <header className="w-full flex justify-between items-start select-none">
+              <div className="bg-[#780000] text-white p-5 rounded-2xl shadow-xl border border-[#9d0208] flex items-center gap-4 max-w-2xl">
+                {resolvedLogoUrl && <img src={resolvedLogoUrl} alt="Logo" className="w-16 h-16 object-contain shrink-0" />}
+                <div className="flex flex-col">
+                   <h1 className="text-3xl font-black tracking-tight">{settings?.mosqueName || "Masjid Abu Bakar"}</h1>
+                   <p className="text-sm text-red-100 mt-1 font-medium">{settings?.mosqueAddress || "Jl. Sudirman No. 12"}</p>
+                </div>
+              </div>
+              <div className="bg-[#1b263b] text-white px-8 py-5 rounded-2xl shadow-xl flex flex-col items-end border border-white/10">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-6xl font-black font-mono tracking-tighter text-white">
+                    {moment(now).format("HH:mm")}
+                  </span>
+                  <span className="text-3xl font-bold font-mono text-gray-400">
+                    {moment(now).format("ss")}
+                  </span>
+                </div>
+                <div className="text-base flex gap-3 mt-2">
+                  <span className="font-bold text-gray-300 uppercase tracking-widest border-r border-white/20 pr-3">
+                    {moment(now).format("dddd, D MMMM YYYY").replace(/Jum'at/gi, 'Jumat')}
+                  </span>
+                  <span className="font-bold text-amber-400 uppercase tracking-widest pl-1">
+                    {hijriText}
+                  </span>
+                </div>
+              </div>
+            </header>
+          )}
+
+          <main className={cn(
+            "flex-1 flex w-full justify-center transition-all duration-700 rounded-3xl overflow-hidden shadow-2xl relative",
+            isWideScreen ? "h-screen m-0 rounded-none object-cover" : "min-h-0"
+          )}>
+            {renderMediaReceptacle("w-full h-full")}
+            {!isWideScreen && nextIslamicEvent && (
+               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur text-white px-8 py-3 rounded-full font-extrabold text-xl tracking-wide shadow-2xl border border-white/20 whitespace-nowrap">
+                 {nextIslamicEvent.daysLeft} hari lagi {nextIslamicEvent.name}
+               </div>
+            )}
+          </main>
+
+          {!isWideScreen && (
+            <div className="flex w-full gap-4 shrink-0 h-[15vh] select-none">
+              {prayerTimesInfo.map((pt, i) => {
+                const isNext = nextPrayer?.id === pt.id;
+                // Determine a deep color based on index
+                const colors = [
+                   'bg-[#0f4c5c]', // Subuh
+                   'bg-[#5f0f40]', // Dhuha
+                   'bg-[#fb8b24]', // Dzuhur
+                   'bg-[#e36414]', // Ashar
+                   'bg-[#cf2a27]', // Maghrib
+                   'bg-[#03071e]', // Isya
+                ];
+                const ptColor = colors[i] || 'bg-slate-800';
+
+                return (
+                  <div key={i} className={cn(
+                    "flex-1 rounded-2xl overflow-hidden flex flex-col justify-center items-center shadow-xl transition-all duration-500 relative",
+                    isNext ? "bg-amber-500 text-slate-900 border-[6px] border-amber-300 scale-105 z-10 rounded-3xl" : `${ptColor} text-white border-2 border-white/10 opacity-95`
+                  )}>
+                    <span className="text-xl font-bold uppercase tracking-widest">{pt.name}</span>
+                    <span className={cn(
+                      "text-5xl font-black font-mono tracking-tighter leading-none mt-2",
+                      isNext ? "text-slate-900" : "text-white"
+                    )}>{moment(pt.time).format("HH:mm")}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       ) : (
         // DEFAULT: CLASSIC LAYOUT (LEFT COL SCHEDULE, RIGHT COL SLIDE)

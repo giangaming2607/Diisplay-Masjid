@@ -114,6 +114,12 @@ const LAYOUT_PRESETS: LayoutTemplatePreset[] = [
     name: "Minimalist Fullscreen Video & Overlays",
     description: "Merubah seluruh layar latar belakang sebagai bingkai pemutaran slide penuh (Fullscreen background), dengan info jam & jadwal diletakkan melayang transparan di atasnya.",
     badge: "Maksimal Sinematik"
+  },
+  {
+    id: "boxed-bottom-schedule",
+    name: "Split Jam Digital & Jadwal Horizontal",
+    description: "Desain layout TV terbaru mirip Layout 05: jam digital kalender di bagian kanan atas info masjid, slide media di tengah dominan, serta susunan waktu sholat mendatar (horizontal) solid di bagian bawah.",
+    badge: "Visual Terbaru"
   }
 ];
 
@@ -395,6 +401,29 @@ export default function AdminThemes() {
                           <div className="w-2 h-1 bg-emerald-500 rounded-sm" />
                           <div className="w-2 h-1 bg-amber-500 rounded-sm" />
                           <div className="w-2 h-1 bg-emerald-500 rounded-sm" />
+                        </div>
+                      </div>
+                    )}
+
+                    {tmpl.id === 'boxed-bottom-schedule' && (
+                      <div className="w-full bg-white rounded-lg flex flex-col p-1 gap-1 relative overflow-hidden">
+                        {/* Top: Header left & digital clock right */}
+                        <div className="flex justify-between items-start bg-emerald-900 border-2 border-amber-500 text-white rounded p-0.5 shadow">
+                           <div className="text-[4px] font-bold">🕌 Masjid Abu Bakar</div>
+                           <div className="text-[6px] font-black font-mono">08:30 <span className="text-[4px]">29 Okt 2025</span></div>
+                        </div>
+                        {/* Middle: Media Area */}
+                        <div className="flex-1 bg-sky-950 rounded flex items-center justify-center relative text-center shadow-inner overflow-hidden">
+                          <div className="absolute inset-0 w-full h-full bg-cover bg-center opacity-50" style={{ backgroundImage: `url(${currentLeftBg})` }} />
+                          <div className="relative z-10 text-[6px] text-white font-black tracking-widest uppercase items-center drop-shadow-md">MEDIA SLIDE / VIDEO</div>
+                        </div>
+                        {/* Bottom: Horizontal schedules */}
+                        <div className="flex gap-0.5 w-full bg-slate-100 rounded-sm p-0.5 shrink-0 justify-between items-center shadow-inner h-3">
+                          <div className="flex-1 h-full bg-red-600 rounded-sm" />
+                          <div className="flex-1 h-full bg-amber-600 rounded-sm" />
+                          <div className="flex-1 h-full bg-blue-600 rounded-sm" />
+                          <div className="flex-1 h-full bg-emerald-600 rounded-sm" />
+                          <div className="flex-1 h-full bg-purple-600 rounded-sm" />
                         </div>
                       </div>
                     )}

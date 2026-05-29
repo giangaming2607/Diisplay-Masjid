@@ -4,6 +4,7 @@ import { getPrayerTimes, cn } from "../lib/utils";
 import moment from "moment";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, ShieldAlert } from "lucide-react";
+import ResolvingImage from "../components/ResolvingImage";
 
 export default function Display() {
   const { settings } = useSettings();
@@ -220,6 +221,70 @@ export default function Display() {
 
   // Dynamic Video URL loader state & resolution effect for large IndexedDB local blobs
   const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>("");
+  const [resolvedBootBgUrl, setResolvedBootBgUrl] = useState<string>("");
+  const [resolvedLogoUrl, setResolvedLogoUrl] = useState<string>("");
+
+  useEffect(() => {
+    let bootBgUrl = settings?.display?.bootBgUrl || "";
+    let objectUrl = "";
+
+    if (!bootBgUrl) {
+      setResolvedBootBgUrl("");
+      return;
+    }
+
+    if (bootBgUrl.startsWith("local-") || bootBgUrl.startsWith("bootBg-")) {
+      let isCancelled = false;
+      import("../lib/indexedDB").then(async ({ getLocalFile }) => {
+        try {
+          const blob = await getLocalFile(bootBgUrl);
+          if (blob && !isCancelled) {
+            objectUrl = URL.createObjectURL(blob);
+            setResolvedBootBgUrl(objectUrl);
+          }
+        } catch (e) {
+          console.error("Failed to load local boot background:", e);
+        }
+      });
+      return () => {
+        isCancelled = true;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    } else {
+      setResolvedBootBgUrl(bootBgUrl);
+    }
+  }, [settings?.display?.bootBgUrl]);
+
+  useEffect(() => {
+    let logoUrl = settings?.display?.logoUrl || "";
+    let objectUrl = "";
+
+    if (!logoUrl) {
+      setResolvedLogoUrl("");
+      return;
+    }
+
+    if (logoUrl.startsWith("local-") || logoUrl.startsWith("logo-")) {
+      let isCancelled = false;
+      import("../lib/indexedDB").then(async ({ getLocalFile }) => {
+        try {
+          const blob = await getLocalFile(logoUrl);
+          if (blob && !isCancelled) {
+            objectUrl = URL.createObjectURL(blob);
+            setResolvedLogoUrl(objectUrl);
+          }
+        } catch (e) {
+          console.error("Failed to load local logo:", e);
+        }
+      });
+      return () => {
+        isCancelled = true;
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+      };
+    } else {
+      setResolvedLogoUrl(logoUrl);
+    }
+  }, [settings?.display?.logoUrl]);
 
   useEffect(() => {
     let activeUrl = settings?.videos?.[0]?.url || "";
@@ -362,8 +427,8 @@ export default function Display() {
   }, [settings?.display?.boxColor]);
 
   if (!settings || booting) {
-    const customBg = settings?.display?.bootBgUrl;
-    const customLogo = settings?.display?.logoUrl;
+    const customBg = resolvedBootBgUrl || settings?.display?.bootBgUrl;
+    const customLogo = resolvedLogoUrl || settings?.display?.logoUrl;
     const bootPercentage = Math.round(((bootStep + 1) / bootLogs.length) * 100);
 
     return (
@@ -490,7 +555,7 @@ export default function Display() {
       {/* Top Center: Mosque Info and elegant subheader */}
       <div className="w-2/4 flex items-center justify-center gap-4 text-center">
         {settings.display.logoUrl && (
-          <img 
+          <ResolvingImage 
             src={settings.display.logoUrl} 
             alt="Mosque Logo" 
             className="w-16 h-16 object-contain shrink-0 rounded-2xl bg-white/10 p-1.5 border border-white/20 shadow-md backdrop-blur-sm"
@@ -640,15 +705,19 @@ export default function Display() {
         )}
 
         {currentMode === 'slide' && settings.slides.length > 0 && (
-          <motion.img
+          <motion.div
             key={`slide-${slideIndex}`}
-            src={settings.slides[slideIndex]?.url}
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -25 }}
             transition={{ duration: 0.8 }}
-            className="w-full h-full object-cover"
-          />
+            className="w-full h-full"
+          >
+            <ResolvingImage
+              src={settings.slides[slideIndex]?.url}
+              className="w-full h-full object-cover"
+            />
+          </motion.div>
         )}
 
         {currentMode === 'video' && settings.videos.length > 0 && (

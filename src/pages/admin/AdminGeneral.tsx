@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useSettings } from "../../lib/SettingsContext";
 import { Save, UploadCloud, Trash2, Image as ImageIcon, Sparkles } from "lucide-react";
+import { saveLocalFile } from "../../lib/indexedDB";
+import ResolvingImage from "../../components/ResolvingImage";
 
 export default function AdminGeneral() {
   const { settings, updateSettings } = useSettings();
@@ -67,7 +69,7 @@ export default function AdminGeneral() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const b64 = await compressImage(file, 300, 0.9); // Logo sizes are compressed small
+      const b64 = await compressImage(file, 600, 0.95); // Extremely sharp higher-quality logo
       setFormData(prev => ({ ...prev, logoUrl: b64 }));
     } catch (err) {
       alert("Gagal memproses gambar logo.");
@@ -78,9 +80,12 @@ export default function AdminGeneral() {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const b64 = await compressImage(file, 1024, 0.65); // High compression for background
-      setFormData(prev => ({ ...prev, bootBgUrl: b64 }));
+      const timestampId = `local-bootBg-${Date.now()}`;
+      await saveLocalFile(timestampId, file);
+      setFormData(prev => ({ ...prev, bootBgUrl: timestampId }));
+      alert(`🎉 Background booting "${file.name}" berhasil disimpan ke TV Lokal dengan kualitas 4K murni!`);
     } catch (err) {
+      console.error("Boot bg upload error:", err);
       alert("Gagal memproses gambar latar booting.");
     }
   };
@@ -150,7 +155,7 @@ export default function AdminGeneral() {
               <div className="flex items-center gap-4">
                 <div className="w-16 h-16 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shrink-0">
                   {formData.logoUrl ? (
-                    <img src={formData.logoUrl} alt="Logo Preview" className="w-full h-full object-contain p-1" />
+                    <ResolvingImage src={formData.logoUrl} alt="Logo Preview" className="w-full h-full object-contain p-1" />
                   ) : (
                     <ImageIcon className="w-8 h-8 text-gray-350" />
                   )}
@@ -182,7 +187,7 @@ export default function AdminGeneral() {
               <div className="flex items-center gap-4">
                 <div className="w-24 h-16 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-center overflow-hidden shrink-0 relative">
                   {formData.bootBgUrl ? (
-                    <img src={formData.bootBgUrl} alt="Boot Background Preview" className="w-full h-full object-cover" />
+                    <ResolvingImage src={formData.bootBgUrl} alt="Boot Background Preview" className="w-full h-full object-cover" />
                   ) : (
                     <div className="absolute inset-0 bg-slate-900 border-none flex items-center justify-center flex-col text-[8px] text-gray-500 font-bold uppercase p-1 text-center">
                       <span>Hitam Bawaan</span>

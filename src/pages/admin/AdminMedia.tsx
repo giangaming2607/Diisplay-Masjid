@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSettings } from "../../lib/SettingsContext";
 import { Save, UploadCloud, Trash2, Image as ImageIcon, Film, Palette, Maximize, Check, Plus, Link2 } from "lucide-react";
 import { saveLocalFile, deleteLocalFile } from "../../lib/indexedDB";
+import ResolvingImage from "../../components/ResolvingImage";
 
 export default function AdminMedia() {
   const { settings, updateSettings } = useSettings();
@@ -96,13 +97,16 @@ export default function AdminMedia() {
 
     try {
       if (type === 'leftBg' || type === 'slide') {
-        const compressedBase64 = await compressImage(file);
+        // Simpan file asli tanpa kompresi (lossless 100% 4K murni) langsung ke IndexedDB
+        const timestampId = `local-${type}-${Date.now()}`;
+        await saveLocalFile(timestampId, file);
+
         if (type === 'leftBg') {
-          setLeftBgImage(compressedBase64);
+          setLeftBgImage(timestampId);
         } else if (type === 'slide') {
-          const timestampId = `slide-${Date.now()}`;
-          setSlides([...slides, { id: timestampId, url: compressedBase64 }]);
+          setSlides([...slides, { id: timestampId, url: timestampId }]);
         }
+        alert(`🎉 Gambar "${file.name}" berhasil disimpan ke TV Lokal dengan kualitas 4K murni!`);
       } else if (type === 'video') {
         // Menyimpan file video biner asli langsung ke IndexedDB agar mendukung file s/d 1 GB
         const timestampId = `local-video-${Date.now()}`;
@@ -138,6 +142,11 @@ export default function AdminMedia() {
 
   const removeFile = async (filename: string, type: 'slide' | 'video') => {
     if (type === 'slide') {
+      try {
+        await deleteLocalFile(filename);
+      } catch (e) {
+        console.error("Fail to remove slide from IndexedDB:", e);
+      }
       setSlides(slides.filter(s => s.id !== filename));
     } else {
       // Hapus video dari IndexedDB
@@ -258,7 +267,7 @@ export default function AdminMedia() {
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
             <div className="relative h-44 rounded-xl border border-gray-200 overflow-hidden bg-gray-100 shadow-inner group">
-              <img src={leftBgImage} alt="Masque Preview" className="w-full h-full object-cover" />
+              <ResolvingImage src={leftBgImage} alt="Masque Preview" className="w-full h-full object-cover" />
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
                 <span className="text-white text-xs font-bold">Foto Masjid Aktif</span>
               </div>
@@ -419,7 +428,7 @@ export default function AdminMedia() {
             <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
               {slides.map((slide, i) => (
                 <div key={i} className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-gray-200">
-                  <img src={slide.url} alt="slide" className="w-16 h-12 object-cover rounded" />
+                  <ResolvingImage src={slide.url} alt="slide" className="w-16 h-12 object-cover rounded" />
                   <span className="flex-1 truncate text-xs text-gray-600 font-mono">{slide.id}</span>
                   <button type="button" onClick={() => removeFile(slide.id, 'slide')} className="p-2 text-red-500 hover:bg-red-50 rounded-md">
                     <Trash2 className="w-4 h-4" />

@@ -218,6 +218,49 @@ export default function Display() {
     }
   }, [currentMode, settings, slideIndex, activePrayerEvent]);
 
+  // Dynamic Video URL loader state & resolution effect for large IndexedDB local blobs
+  const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>("");
+
+  useEffect(() => {
+    let activeUrl = settings?.videos?.[0]?.url || "";
+    let objectUrl = "";
+
+    if (!activeUrl) {
+      setResolvedVideoUrl("");
+      return;
+    }
+
+    const isLocalVideo = settings?.videos?.[0]?.isLocal || activeUrl.startsWith("local-");
+
+    if (isLocalVideo) {
+      let isCancelled = false;
+      // Lazy load local IndexedDB utility to ensure maximum performance
+      import("../lib/indexedDB").then(async ({ getLocalFile }) => {
+        try {
+          const blob = await getLocalFile(activeUrl);
+          if (blob && !isCancelled) {
+            objectUrl = URL.createObjectURL(blob);
+            setResolvedVideoUrl(objectUrl);
+          } else if (!isCancelled) {
+            setResolvedVideoUrl("");
+          }
+        } catch (e) {
+          console.error("Failed to load local video file from IndexedDB:", e);
+        }
+      });
+
+      return () => {
+        isCancelled = true;
+        if (objectUrl) {
+          URL.revokeObjectURL(objectUrl);
+        }
+      };
+    } else {
+      // Direct stream URL
+      setResolvedVideoUrl(activeUrl);
+    }
+  }, [settings?.videos]);
+
   // Safe Hijri formatting fallback
   const hijriText = useMemo(() => {
     try {
@@ -616,13 +659,21 @@ export default function Display() {
             exit={{ opacity: 0 }}
             className="w-full h-full bg-black flex items-center justify-center"
           >
-            <video 
-              src={settings.videos[0]?.url} 
-              autoPlay 
-              loop 
-              muted 
-              className="w-full h-full object-cover"
-            />
+            {resolvedVideoUrl ? (
+              <video 
+                src={resolvedVideoUrl} 
+                autoPlay 
+                loop 
+                muted 
+                playsInline
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="text-white text-sm animate-pulse max-w-sm text-center flex flex-col gap-2 p-6 bg-slate-900/50 rounded-2xl border border-white/5">
+                <span className="font-extrabold tracking-widest text-[#f1c40f] uppercase">Memuat Video</span>
+                <span className="text-xs text-slate-400">Sedang memproses video dari penyimpanan TV Lokal...</span>
+              </div>
+            )}
           </motion.div>
         )}
 

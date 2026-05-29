@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSettings } from "../../lib/SettingsContext";
 import { Save, UploadCloud, Trash2, Image as ImageIcon, Film, Palette, Maximize, Check, Plus, Link2 } from "lucide-react";
+import { saveLocalFile, deleteLocalFile } from "../../lib/indexedDB";
 
 export default function AdminMedia() {
   const { settings, updateSettings } = useSettings();
@@ -93,11 +94,6 @@ export default function AdminMedia() {
       return;
     }
 
-    // Info edukasi detail mengenai batasan data-url di browser/database
-    if (type === 'video' && file.size > 1.2 * 1024 * 1024) {
-      alert("⚠️ Informasi: Batas video telah didekati/ditingkatkan menjadi 1 GB.\n\nNamun, harap diperhatikan bahwa menyimpan video berukuran besar secara langsung sebagai teks database cloud (Firestore/LocalStorage) memiliki batas fisik browser dan koneksi. Jika video gagal disimpan atau membuat loading TV lambat, sangat disarankan menggunakan fitur 'Tambah via Link URL Direct' (.mp4) di bawah agar performa TV Anda tetap lancar!");
-    }
-
     try {
       if (type === 'leftBg' || type === 'slide') {
         const compressedBase64 = await compressImage(file);
@@ -108,16 +104,34 @@ export default function AdminMedia() {
           setSlides([...slides, { id: timestampId, url: compressedBase64 }]);
         }
       } else if (type === 'video') {
-        // Read small video as standard base64 data-url
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          const result = reader.result as string;
-          const timestampId = `video-${Date.now()}`;
-          setVideos([...videos, { id: timestampId, url: result }]);
-        };
+        // Menyimpan file video biner asli langsung ke IndexedDB agar mendukung file s/d 1 GB
+        const timestampId = `local-video-${Date.now()}`;
+        
+        // Informasikan proses simpan sedang berjalan
+        const processMsg = file.size > 50 * 1024 * 1024 
+          ? "Sedang memproses video berukuran besar (+50MB) ke penyimpanan TV lokal. Harap tunggu sebentar..." 
+          : "Menyimpan video ke penyimpanan TV lokal...";
+        
+        console.log(processMsg);
+        
+        await saveLocalFile(timestampId, file);
+        
+        // Simpan metadata ringan ke Firestore agar tidak melebihi 1MB
+        setVideos([
+          ...videos, 
+          { 
+            id: timestampId, 
+            url: timestampId, 
+            name: file.name, 
+            size: (file.size / (1024 * 1024)).toFixed(1) + " MB", 
+            isLocal: true 
+          }
+        ]);
+        
+        alert(`🎉 Video "${file.name}" berhasil disimpan ke TV Lokal!`);
       }
     } catch (error) {
+      console.error("Upload error:", error);
       alert("Proses pemrosesan file gagal, silakan coba lagi.");
     }
   };
@@ -126,6 +140,12 @@ export default function AdminMedia() {
     if (type === 'slide') {
       setSlides(slides.filter(s => s.id !== filename));
     } else {
+      // Hapus video dari IndexedDB
+      try {
+        await deleteLocalFile(filename);
+      } catch (e) {
+        console.error("Fail to remove video from IndexedDB:", e);
+      }
       setVideos(videos.filter(v => v.id !== filename));
     }
   };

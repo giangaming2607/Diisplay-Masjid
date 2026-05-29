@@ -138,6 +138,8 @@ export default function AdminGeneral() {
         <hr className="border-gray-100" />
 
         {/* LOGO & BOOT BACKGROUND BRANDING SECTION */}
+        <hr className="border-gray-100" />
+
         <div>
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 mb-1">
             <Sparkles className="w-5 h-5 text-amber-500" />

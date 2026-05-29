@@ -1,0 +1,40 @@
+1:import { useState, useEffect, useMemo, useRef } from "react";
+2:import { useSettings } from "../lib/SettingsContext";
+11:  const { settings } = useSettings();
+12:  const [now, setNow] = useState(new Date());
+15:  const [mixedIndex, setMixedIndex] = useState(0);
+16:  const [slideIndex, setSlideIndex] = useState(0);
+17:  const [soundEnabled, setSoundEnabled] = useState(false);
+18:  const adzanAudioRef = useRef<HTMLAudioElement | null>(null);
+19:  const beepAudioRef = useRef<HTMLAudioElement | null>(null);
+22:  const [showAdminQr, setShowAdminQr] = useState(false);
+25:  useEffect(() => {
+37:  const [booting, setBooting] = useState(true);
+38:  const [bootStep, setBootStep] = useState(0);
+40:  const bootLogs = useMemo(() => [
+50:  useEffect(() => {
+73:  useEffect(() => {
+74:    // We can use native HTML5 Speech Synthesis or standard oscillator tones to ensure
+75:    // we don't have broken paths if the user hasn't uploaded a file.
+80:  useEffect(() => {
+88:  const localMosqueTime = useMemo(() => {
+97:  const prayerTimesInfo = useMemo(() => {
+116:  const nextPrayer = useMemo(() => {
+122:  const activePrayerEvent = useMemo(() => {
+171:  const lastEventStatus = useRef<string | null>(null);
+172:  useEffect(() => {
+201:  const currentMode = useMemo(() => {
+205:    // the system focuses on showing Prayer Times/Schedule for complete focus.
+229:  useEffect(() => {
+255:  useEffect(() => {
+265:  const [resolvedVideoUrl, setResolvedVideoUrl] = useState<string>("");
+266:  const [resolvedBootBgUrl, setResolvedBootBgUrl] = useState<string>("");
+267:  const [resolvedLogoUrl, setResolvedLogoUrl] = useState<string>("");
+269:  useEffect(() => {
+300:  useEffect(() => {
+331:  useEffect(() => {
+372:  const hijriText = useMemo(() => {
+385:  const nearestHoliday = useMemo(() => {
+449:  const isDarkBg = useMemo(() => {
+460:  const isDarkBox = useMemo(() => {
+1246:      {/* Tiny subtle button to trigger Admin QR modal (for mouse users) */}

@@ -3,8 +3,9 @@ import { useSettings } from "../lib/SettingsContext";
 import { getPrayerTimes, cn } from "../lib/utils";
 import moment from "moment";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX, ShieldAlert } from "lucide-react";
+import { Volume2, VolumeX, ShieldAlert, Settings, Info } from "lucide-react";
 import ResolvingImage from "../components/ResolvingImage";
+import { QRCodeSVG } from "qrcode.react";
 
 export default function Display() {
   const { settings } = useSettings();
@@ -16,6 +17,21 @@ export default function Display() {
   const [soundEnabled, setSoundEnabled] = useState(false);
   const adzanAudioRef = useRef<HTMLAudioElement | null>(null);
   const beepAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Admin QR Trigger
+  const [showAdminQr, setShowAdminQr] = useState(false);
+
+  // Hidden Keybinding helper
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle QR modal with "A" or "Q"
+      if (e.key.toLowerCase() === 'a' || e.key.toLowerCase() === 'q') {
+        setShowAdminQr(prev => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // System Booting Simulation States
   const [booting, setBooting] = useState(true);
@@ -1184,6 +1200,57 @@ export default function Display() {
         </div>
       )}
 
+      {/* ADMIN QR CODE MODAL - Easily open admin on mobile */}
+      {showAdminQr && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm shadow-2xl p-6 transition-all duration-300">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-10 max-w-sm w-full flex flex-col items-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/20"
+          >
+            <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-6">
+              <Settings className="w-8 h-8" />
+            </div>
+            
+            <h3 className="text-2xl font-black text-slate-800 uppercase tracking-widest mb-2">Remote Admin</h3>
+            <p className="text-sm font-semibold text-slate-500 mb-8 max-w-[200px] leading-relaxed">
+              Scan kode di bawah menggunakan HP Anda untuk aplikasi Admin jarak jauh.
+            </p>
+            
+            <div className="bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-inner inline-block">
+              <QRCodeSVG 
+                value={`${window.location.origin}/admin`}
+                size={200}
+                bgColor={"#ffffff"}
+                fgColor={"#0f172a"}
+                level={"M"}
+              />
+            </div>
+            
+            <p className="mt-6 text-xs text-blue-600 font-bold bg-blue-50 px-4 py-2 rounded-full cursor-pointer hover:bg-blue-100 transition truncate w-full"
+              onClick={() => window.open('/admin', '_blank')}
+            >
+              {window.location.origin}/admin
+            </p>
+
+            <button 
+              onClick={() => setShowAdminQr(false)}
+              className="mt-6 bg-slate-900 text-white font-bold text-sm px-8 py-3 rounded-xl uppercase tracking-widest hover:bg-slate-800 transition active:scale-95"
+            >
+              Tutup
+            </button>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Tiny subtle button to trigger Admin QR modal (for mouse users) */}
+      <button 
+        onClick={() => setShowAdminQr(true)}
+        className="absolute bottom-4 right-4 z-50 w-8 h-8 bg-black/10 hover:bg-black/30 rounded-full flex items-center justify-center text-white/50 hover:text-white transition-colors duration-300 backdrop-blur-sm border border-transparent hover:border-white/20 tooltip-trigger group"
+        title="Buka Aplikasi Admin"
+      >
+        <Info className="w-4 h-4" />
+      </button>
     </div>
   );
 }

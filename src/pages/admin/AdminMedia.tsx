@@ -14,6 +14,7 @@ export default function AdminMedia() {
   const [slides, setSlides] = useState<any[]>([]);
   const [videos, setVideos] = useState<any[]>([]);
   const [leftBgImage, setLeftBgImage] = useState("");
+  const [bootBgUrl, setBootBgUrl] = useState("");
   const [mediaFullScreen, setMediaFullScreen] = useState(false);
   const [bgColor, setBgColor] = useState("#f3f4f6");
   const [boxColor, setBoxColor] = useState("#ffffff");
@@ -27,6 +28,7 @@ export default function AdminMedia() {
       setSlides(settings.slides || []);
       setVideos(settings.videos || []);
       setLeftBgImage(settings.display.leftBgImage || "https://images.unsplash.com/photo-1564683214964-b31c0ee611fc?q=80&w=2070&auto=format&fit=crop");
+      setBootBgUrl(settings.display.bootBgUrl || "");
       setMediaFullScreen(!!settings.display.mediaFullScreen);
       setBgColor(settings.display.bgColor || "#f3f4f6");
       setBoxColor(settings.display.boxColor || "#ffffff");
@@ -58,6 +60,7 @@ export default function AdminMedia() {
         mode,
         slideDuration,
         leftBgImage,
+        bootBgUrl,
         mediaFullScreen,
         bgColor,
         boxColor,
@@ -104,7 +107,7 @@ export default function AdminMedia() {
     });
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'slide' | 'video' | 'leftBg') => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'slide' | 'video' | 'leftBg' | 'bootBg') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -115,13 +118,15 @@ export default function AdminMedia() {
     }
 
     try {
-      if (type === 'leftBg' || type === 'slide') {
+      if (type === 'leftBg' || type === 'bootBg' || type === 'slide') {
         // Simpan file asli tanpa kompresi (lossless 100% 4K murni) langsung ke IndexedDB
         const timestampId = `local-${type}-${Date.now()}`;
         await saveLocalFile(timestampId, file);
 
         if (type === 'leftBg') {
           setLeftBgImage(timestampId);
+        } else if (type === 'bootBg') {
+          setBootBgUrl(timestampId);
         } else if (type === 'slide') {
           setSlides([...slides, { id: timestampId, url: timestampId }]);
         }
@@ -379,6 +384,58 @@ export default function AdminMedia() {
                   className="text-xs text-blue-600 hover:text-blue-800 bg-blue-50 px-3 py-1.5 rounded transition font-medium"
                 >
                   Sunset Masjid Tema
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ROW 2.5: Full Screen Boot/Standby Photo */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mt-6 mb-6">
+          <h3 className="text-lg font-bold text-gray-800 mb-2 flex items-center gap-2">
+            <Maximize className="text-blue-600 w-5 h-5" /> Foto Layar Penuh (Booting / Standby Layar Depan)
+          </h3>
+          <p className="text-xs text-gray-500 mb-4 font-sans">
+            Tampilan layar penuh ini muncul saat aplikasi pertama kali dinyalakan (booting), sebelum masuk ke jadwal.
+          </p>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            <div className="relative h-44 rounded-xl border border-gray-200 overflow-hidden bg-gray-100 shadow-inner group flex items-center justify-center">
+              {bootBgUrl ? (
+                <ResolvingImage src={bootBgUrl} alt="Boot Preview" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-xs text-gray-400">Kosong (Pakai Warna Tema Default)</span>
+              )}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-300">
+                <span className="text-white text-xs font-bold">Foto Full Screen Aktif</span>
+              </div>
+            </div>
+
+            <div className="md:col-span-2 space-y-3">
+              <label className="flex flex-col items-center justify-center w-full h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition">
+                <div className="flex flex-col items-center justify-center pt-3 pb-4">
+                  <UploadCloud className="w-8 h-8 text-gray-400 mb-1" />
+                  <p className="text-xs text-gray-600 font-medium">Klik untuk pilih & unggah Foto Layar Penuh (Standby)</p>
+                  <p className="text-[10px] text-gray-400 mt-1">Mendukung format JPG, PNG</p>
+                </div>
+                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'bootBg')} />
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Atau masukkan Link URL Foto langsung (Contoh: https://...)"
+                  value={bootBgUrl.startsWith("data:") ? "" : bootBgUrl}
+                  onChange={(e) => setBootBgUrl(e.target.value)}
+                  className="flex-1 text-xs px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-gray-50"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBootBgUrl("")}
+                  className="text-xs text-red-600 hover:text-red-800 bg-red-50 px-3 py-1.5 rounded transition font-medium"
+                >
+                  Hapus & Kembalikan ke Warna Tema
                 </button>
               </div>
             </div>

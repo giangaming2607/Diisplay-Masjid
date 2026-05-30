@@ -28,6 +28,7 @@ export interface MosqueSettings {
     iqomahActive: boolean;
     iqomahDuration: number;
     iqomahVolume: number;
+    sholatDuration: number;
     warningAudioActive: boolean;
     warningMinutes: number;
   };

@@ -7,6 +7,7 @@ import AdminGeneral from "./AdminGeneral";
 import AdminLocation from "./AdminLocation";
 import AdminMedia from "./AdminMedia";
 import AdminThemes from "./AdminThemes";
+import AdminAudio from "./AdminAudio";
 
 export default function AdminLayout() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function AdminLayout() {
   const navItems = [
     { name: "Data Masjid", path: "/admin", icon: Settings },
     { name: "Lokasi & Waktu", path: "/admin/location", icon: MapPin },
+    { name: "Waktu Jeda", path: "/admin/audio", icon: Activity },
     { name: "Desain Tampilan", path: "/admin/themes", icon: Palette },
     { name: "Media & Slides", path: "/admin/media", icon: ImageIcon },
     { name: "Preview Layar", path: "/", icon: MonitorPlay, external: true },
@@ -149,6 +151,7 @@ export default function AdminLayout() {
          <Routes>
           <Route path="/" element={<AdminGeneral />} />
           <Route path="/location" element={<AdminLocation />} />
+          <Route path="/audio" element={<AdminAudio />} />
           <Route path="/themes" element={<AdminThemes />} />
           <Route path="/media" element={<AdminMedia />} />
         </Routes>

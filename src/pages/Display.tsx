@@ -37,6 +37,20 @@ export default function Display() {
   // System Booting Simulation States
   const [booting, setBooting] = useState(true);
   const [bootStep, setBootStep] = useState(0);
+  const [showWorldClock, setShowWorldClock] = useState(false);
+
+  // World clock random triggger
+  useEffect(() => {
+    // Show world clock every 6 minutes for 20 seconds.
+    const interval = setInterval(() => {
+      setShowWorldClock(true);
+      setTimeout(() => {
+        setShowWorldClock(false);
+      }, 20000);
+    }, 360000); // 6 mins * 60s * 1000ms
+
+    return () => clearInterval(interval);
+  }, []);
 
   const bootLogs = useMemo(() => [
     "INIT SYSTEM CORE VM: [v2.5.1-STABLE]",
@@ -130,14 +144,24 @@ export default function Display() {
 
     // We only trigger events on the actual obligatory prayer times.
     const activePrayers = prayerTimesInfo.filter(p => p.isDailyPrayer);
-    const adzanDurationMinutes = 3; // 3 minutes of adzan screen
+    const adzanDurationMinutes = 4; // Adzan duration screen
     const iqomahMinutes = settings.audio.iqomahDuration || 7; // customized
-    const sholatQuietMinutes = 15; // 15 minutes of quiet during prayers
+    const sholatQuietMinutes = settings.audio.sholatDuration || 15; // customized length
+    const preparationMinutes = 1; // 1 minute before adzan
 
     for (const p of activePrayers) {
       const ptTime = p.time.getTime();
       const elapsedMs = localMosqueTime.getTime() - ptTime;
       const elapsedMinutes = elapsedMs / 60000;
+
+      // Check if we are approaching adzan (Menjelang Adzan - 1 minute countdown)
+      if (elapsedMinutes >= -preparationMinutes && elapsedMinutes < 0) {
+        return {
+          status: 'menjelang_adzan',
+          prayerName: p.name,
+          timeLeftSeconds: Math.ceil(Math.abs(elapsedMinutes) * 60),
+        };
+      }
 
       if (elapsedMinutes >= 0) {
         // 1. ADZAN PERIOD
@@ -146,6 +170,7 @@ export default function Display() {
             status: 'adzan',
             prayerName: p.name,
             timeLeftSeconds: Math.ceil((adzanDurationMinutes - elapsedMinutes) * 60),
+            totalDurationSeconds: adzanDurationMinutes * 60,
           };
         }
         // 2. IQOMAH COUNTDOWN PERIOD
@@ -162,9 +187,14 @@ export default function Display() {
         }
         // 3. SHOLAT TRANQUIL MODE (Screen off/quiet so no distraction)
         else if (elapsedMinutes < (adzanDurationMinutes + iqomahMinutes + sholatQuietMinutes)) {
+          const totalSholatMs = sholatQuietMinutes * 60000;
+          const finishedIqomahTime = ptTime + ((adzanDurationMinutes + iqomahMinutes) * 60000);
+          const elapsedSholat = localMosqueTime.getTime() - finishedIqomahTime;
+          const remainingMs = totalSholatMs - elapsedSholat;
           return {
             status: 'sholat',
             prayerName: p.name,
+            timeLeftSeconds: Math.ceil(remainingMs / 1000),
           };
         }
       }
@@ -177,7 +207,11 @@ export default function Display() {
   const lastEventStatus = useRef<string | null>(null);
   useEffect(() => {
     if (activePrayerEvent && soundEnabled) {
-      if (activePrayerEvent.status === 'adzan' && lastEventStatus.current !== 'adzan') {
+      if (activePrayerEvent.status === 'menjelang_adzan' && activePrayerEvent.timeLeftSeconds === 60) {
+        if (beepAudioRef.current) {
+          beepAudioRef.current.play().catch(e => {});
+        }
+      } else if (activePrayerEvent.status === 'adzan' && lastEventStatus.current !== 'adzan') {
         // Play Adzan or Beep
         try {
           if (beepAudioRef.current) {
@@ -897,6 +931,27 @@ export default function Display() {
             className="absolute inset-0 z-50 flex flex-col text-white justify-between p-12 select-none"
             style={{ backgroundColor: activePrayerEvent.status === 'sholat' ? "#000000" : "#0d1b2a" }}
           >
+            {/* 0. MENJELANG ADZAN PANEL */}
+            {activePrayerEvent.status === 'menjelang_adzan' && (
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-8 bg-gradient-to-b from-indigo-900 to-black rounded-3xl p-10 border border-indigo-700/50">
+                <div className="text-4xl font-extrabold tracking-widest text-amber-500 uppercase animate-pulse">
+                  MENJELANG ADZAN
+                </div>
+                <div className="text-8xl font-black uppercase text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                  {activePrayerEvent.prayerName}
+                </div>
+                <div className="text-[10rem] font-bold tracking-tighter text-white font-mono leading-none drop-shadow-2xl">
+                  {String(activePrayerEvent.timeLeftSeconds!).padStart(2, '0')}
+                </div>
+                <div className="text-2xl font-medium tracking-wide text-amber-200 uppercase">
+                  Detik
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-2xl px-8 py-4 max-w-xl text-lg text-gray-300">
+                  Bersiaplah memasuki waktu sholat {activePrayerEvent.prayerName}.
+                </div>
+              </div>
+            )}
+
             {/* 1. ADZAN STATUS PANEL */}
             {activePrayerEvent.status === 'adzan' && (
               <div className="h-full flex flex-col items-center justify-center text-center space-y-8">
@@ -913,8 +968,15 @@ export default function Display() {
                 <div className="text-3xl font-medium tracking-wide text-gray-300 max-w-2xl leading-relaxed">
                   "Menjawab seruan Adzan, meluruskan niat, dan bergegas mempersiapkan sholat berjemaah."
                 </div>
-                <div className="font-mono text-xl text-emerald-400 bg-white/10 px-6 py-2 rounded-lg">
-                  Selesai dalam: {activePrayerEvent.timeLeftSeconds} Detik
+                <div className="w-full max-w-2xl bg-gray-800 rounded-full h-8 overflow-hidden border border-gray-600 mt-8">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(1 - (activePrayerEvent.timeLeftSeconds! / activePrayerEvent.totalDurationSeconds!)) * 100}%` }}
+                    className="h-full bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-400"
+                  />
+                </div>
+                <div className="text-gray-400 mt-2 font-mono">
+                  Mengikuti Adzan...
                 </div>
               </div>
             )}
@@ -949,13 +1011,61 @@ export default function Display() {
                   <ShieldAlert className="w-10 h-10" />
                 </div>
                 <div className="text-5xl font-extrabold tracking-widest text-emerald-500 uppercase">
-                  SHOLAT BERJEMAAH SEDANG BERLANGSUNG
+                  Saatnya Sholat {activePrayerEvent.prayerName}
                 </div>
                 <div className="text-2xl text-gray-400 max-w-lg leading-relaxed font-light">
-                  Layar utama dimatikan sementara agar jamaah dapat khusyuk mendengarkan bacaan Imam dan menjaga konsentrasi.
+                  Layar utama dimatikan sementara agar jamaah dapat khusyuk. Harap tenang.
+                </div>
+                <div className="mt-8 text-xl font-mono text-gray-600">
+                  Layar akan kembali menyala dalam {Math.floor(activePrayerEvent.timeLeftSeconds! / 60)} menit
                 </div>
               </div>
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!activePrayerEvent && showWorldClock && (
+          <motion.div
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 1.5, ease: "easeInOut" }}
+            className="absolute inset-0 z-[40] bg-[#0a0a0a] flex flex-col items-center justify-center text-white"
+          >
+            {/* World Map Background Texture */}
+            <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1524661135-423995f22d0b?q=80&w=2000&auto=format&fit=crop')] bg-cover bg-center mix-blend-screen" />
+            
+            <div className="relative z-10 w-full px-12 max-w-7xl">
+              <div className="text-center mb-16">
+                <h1 className="text-4xl font-extrabold tracking-[0.2em] text-amber-500 uppercase mb-4">Jam Dunia</h1>
+                <div className="h-1 w-32 bg-amber-600 mx-auto rounded-full" />
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-12">
+                {[
+                  { name: "Makkah / Madinah", tz: "Asia/Riyadh" },
+                  { name: "Jerusalem", tz: "Asia/Jerusalem" },
+                  { name: "Jakarta", tz: "Asia/Jakarta" },
+                  { name: "Tokyo", tz: "Asia/Tokyo" },
+                  { name: "London", tz: "Europe/London" },
+                  { name: "New York", tz: "America/New_York" },
+                  { name: "Sydney", tz: "Australia/Sydney" },
+                  { name: "Kuala Lumpur", tz: "Asia/Kuala_Lumpur" }
+                ].map((city, idx) => (
+                  <div key={idx} className="flex flex-col items-center justify-center p-6 bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 shadow-2xl">
+                    <span className="text-gray-400 font-bold tracking-widest text-sm uppercase mb-6">{city.name}</span>
+                    <span className="text-6xl font-black font-mono tracking-tighter text-white">
+                      {new Date().toLocaleTimeString("id-ID", { timeZone: city.tz, hour: '2-digit', minute: '2-digit' }).replace('.', ':')}
+                    </span>
+                    <span className="text-xs text-gray-500 font-mono mt-4 uppercase">
+                      {new Date().toLocaleDateString("en-US", { timeZone: city.tz, month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

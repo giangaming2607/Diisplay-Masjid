@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS: MosqueSettings = {
     iqomahActive: true,
     iqomahDuration: 7,
     iqomahVolume: 60,
+    sholatDuration: 15,
     warningAudioActive: true,
     warningMinutes: 3,
   },
